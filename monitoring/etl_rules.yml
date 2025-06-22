@@ -1,0 +1,161 @@
+groups:
+  - name: etl_framework_alerts
+    rules:
+      # API Health Alerts
+      - alert: ETLAPIDown
+        expr: up{job="etl-framework-api"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "ETL Framework API is down"
+          description: "ETL Framework API has been down for more than 1 minute."
+
+      - alert: ETLAPIHighErrorRate
+        expr: rate(http_requests_total{job="etl-framework-api",status=~"5.."}[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High error rate in ETL Framework API"
+          description: "ETL Framework API error rate is {{ $value }} errors per second."
+
+      - alert: ETLAPIHighLatency
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job="etl-framework-api"}[5m])) > 2
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High latency in ETL Framework API"
+          description: "95th percentile latency is {{ $value }} seconds."
+
+      # Pipeline Execution Alerts
+      - alert: PipelineExecutionFailure
+        expr: increase(etl_pipeline_executions_failed_total[5m]) > 0
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Pipeline execution failure detected"
+          description: "Pipeline {{ $labels.pipeline_name }} has failed {{ $value }} times in the last 5 minutes."
+
+      - alert: PipelineExecutionStuck
+        expr: etl_pipeline_execution_duration_seconds > 3600
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Pipeline execution taking too long"
+          description: "Pipeline {{ $labels.pipeline_name }} has been running for more than 1 hour."
+
+      - alert: HighPipelineQueueLength
+        expr: etl_pipeline_queue_length > 10
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High pipeline queue length"
+          description: "Pipeline queue length is {{ $value }}, indicating potential bottleneck."
+
+      # Resource Usage Alerts
+      - alert: HighCPUUsage
+        expr: rate(process_cpu_seconds_total{job="etl-framework-api"}[5m]) * 100 > 80
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High CPU usage in ETL Framework API"
+          description: "CPU usage is {{ $value }}%."
+
+      - alert: HighMemoryUsage
+        expr: process_resident_memory_bytes{job="etl-framework-api"} / 1024 / 1024 > 1024
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High memory usage in ETL Framework API"
+          description: "Memory usage is {{ $value }} MB."
+
+      - alert: LowDiskSpace
+        expr: (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) * 100 < 10
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Low disk space"
+          description: "Disk space is {{ $value }}% available."
+
+      # Database Alerts
+      - alert: DatabaseConnectionFailure
+        expr: etl_database_connections_failed_total > 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Database connection failure"
+          description: "Failed to connect to database {{ $labels.database_name }}."
+
+      - alert: SlowDatabaseQueries
+        expr: histogram_quantile(0.95, rate(etl_database_query_duration_seconds_bucket[5m])) > 5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Slow database queries detected"
+          description: "95th percentile database query time is {{ $value }} seconds."
+
+      # Data Quality Alerts
+      - alert: DataQualityIssue
+        expr: increase(etl_data_quality_issues_total[5m]) > 0
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Data quality issue detected"
+          description: "{{ $value }} data quality issues detected in the last 5 minutes."
+
+      - alert: HighDataRejectionRate
+        expr: rate(etl_records_rejected_total[5m]) / rate(etl_records_processed_total[5m]) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High data rejection rate"
+          description: "Data rejection rate is {{ $value | humanizePercentage }}."
+
+      # Connector Alerts
+      - alert: ConnectorFailure
+        expr: etl_connector_status{status!="connected"} == 1
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Connector failure detected"
+          description: "Connector {{ $labels.connector_name }} is in {{ $labels.status }} state."
+
+      - alert: ConnectorHighLatency
+        expr: histogram_quantile(0.95, rate(etl_connector_operation_duration_seconds_bucket[5m])) > 10
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High connector latency"
+          description: "95th percentile connector operation time is {{ $value }} seconds for {{ $labels.connector_name }}."
+
+  - name: etl_framework_recording_rules
+    rules:
+      # Recording rules for better performance
+      - record: etl:pipeline_success_rate
+        expr: rate(etl_pipeline_executions_successful_total[5m]) / rate(etl_pipeline_executions_total[5m])
+
+      - record: etl:pipeline_throughput
+        expr: rate(etl_records_processed_total[5m])
+
+      - record: etl:api_request_rate
+        expr: rate(http_requests_total{job="etl-framework-api"}[5m])
+
+      - record: etl:api_error_rate
+        expr: rate(http_requests_total{job="etl-framework-api",status=~"5.."}[5m])
+
+      - record: etl:transformation_performance
+        expr: rate(etl_transformation_duration_seconds_sum[5m]) / rate(etl_transformation_duration_seconds_count[5m])
