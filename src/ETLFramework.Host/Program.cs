@@ -1,2 +1,75 @@
-﻿// See https://aka.ms/new-console-template for more information
-Console.WriteLine("Hello, World!");
+﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Serilog;
+
+namespace ETLFramework.Host;
+
+/// <summary>
+/// Main entry point for the ETL Framework Host application.
+/// Provides a console host for running ETL pipelines with dependency injection and logging.
+/// </summary>
+public class Program
+{
+    /// <summary>
+    /// Main entry point for the application.
+    /// </summary>
+    /// <param name="args">Command line arguments</param>
+    /// <returns>Exit code</returns>
+    public static async Task<int> Main(string[] args)
+    {
+        // Configure Serilog
+        Log.Logger = new LoggerConfiguration()
+            .MinimumLevel.Information()
+            .WriteTo.Console()
+            .CreateLogger();
+
+        try
+        {
+            Log.Information("Starting ETL Framework Host");
+
+            // Create and configure the host
+            var host = CreateHostBuilder(args).Build();
+
+            // Run the host
+            await host.RunAsync();
+
+            Log.Information("ETL Framework Host stopped");
+            return 0;
+        }
+        catch (Exception ex)
+        {
+            Log.Fatal(ex, "ETL Framework Host terminated unexpectedly");
+            return 1;
+        }
+        finally
+        {
+            Log.CloseAndFlush();
+        }
+    }
+
+    /// <summary>
+    /// Creates and configures the host builder with dependency injection and logging.
+    /// </summary>
+    /// <param name="args">Command line arguments</param>
+    /// <returns>Configured host builder</returns>
+    private static IHostBuilder CreateHostBuilder(string[] args) =>
+        Microsoft.Extensions.Hosting.Host.CreateDefaultBuilder(args)
+            .UseSerilog()
+            .ConfigureServices((context, services) =>
+            {
+                // Register ETL Framework services
+                ConfigureServices(services);
+            });
+
+    /// <summary>
+    /// Configures dependency injection services for the ETL Framework.
+    /// </summary>
+    /// <param name="services">Service collection to configure</param>
+    private static void ConfigureServices(IServiceCollection services)
+    {
+        // TODO: Register ETL Framework services here
+        // This will be expanded as we implement the core interfaces and services
+
+        Log.Information("ETL Framework services configured");
+    }
+}
