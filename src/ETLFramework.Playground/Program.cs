@@ -77,7 +77,8 @@ public class Program
             .ConfigureServices((context, services) =>
             {
                 // Register ETL Framework services
-                services.AddSingleton<IConnectorFactory, ConnectorFactory>();
+                services.AddSingleton<ConnectorFactory>();
+                services.AddSingleton<IConnectorFactory>(provider => provider.GetRequiredService<ConnectorFactory>());
                 services.AddSingleton<IPipelineOrchestrator, PipelineOrchestrator>();
 
                 // Register transformation services
