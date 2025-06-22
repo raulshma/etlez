@@ -68,7 +68,7 @@ public class RabbitMQBroker : IMessageBroker
     }
 
     /// <inheritdoc />
-    public async Task DisconnectAsync(CancellationToken cancellationToken = default)
+    public Task DisconnectAsync(CancellationToken cancellationToken = default)
     {
         try
         {
@@ -92,6 +92,7 @@ public class RabbitMQBroker : IMessageBroker
         {
             _logger.LogError(ex, "Error disconnecting from RabbitMQ");
         }
+        return Task.CompletedTask;
     }
 
     /// <inheritdoc />
@@ -107,7 +108,7 @@ public class RabbitMQBroker : IMessageBroker
     }
 
     /// <inheritdoc />
-    public async Task PublishAsync<T>(string topic, T message, MessageProperties properties, CancellationToken cancellationToken = default)
+    public Task PublishAsync<T>(string topic, T message, MessageProperties properties, CancellationToken cancellationToken = default)
     {
         if (_channel == null)
             throw new InvalidOperationException("Not connected to RabbitMQ");
@@ -150,6 +151,7 @@ public class RabbitMQBroker : IMessageBroker
             _logger.LogError(ex, "Failed to publish message to topic: {Topic}", topic);
             throw;
         }
+        return Task.CompletedTask;
     }
 
     /// <inheritdoc />
@@ -168,7 +170,7 @@ public class RabbitMQBroker : IMessageBroker
     }
 
     /// <inheritdoc />
-    public async Task SubscribeAsync<T>(string topic, Func<T, MessageContext, Task> handler, SubscriptionOptions options, CancellationToken cancellationToken = default)
+    public Task SubscribeAsync<T>(string topic, Func<T, MessageContext, Task> handler, SubscriptionOptions options, CancellationToken cancellationToken = default)
     {
         if (_channel == null)
             throw new InvalidOperationException("Not connected to RabbitMQ");
@@ -243,21 +245,23 @@ public class RabbitMQBroker : IMessageBroker
             _logger.LogError(ex, "Failed to subscribe to topic: {Topic}", topic);
             throw;
         }
+        return Task.CompletedTask;
     }
 
     /// <inheritdoc />
-    public async Task UnsubscribeAsync(string topic, CancellationToken cancellationToken = default)
+    public Task UnsubscribeAsync(string topic, CancellationToken cancellationToken = default)
     {
-        if (_consumers.TryRemove(topic, out var consumer))
+        if (_consumers.TryRemove(topic, out _))
         {
             // Consumer cleanup would go here
             _logger.LogInformation("Unsubscribed from topic: {Topic}", topic);
         }
+        return Task.CompletedTask;
     }
 
-    private async Task DeclareTopologyAsync()
+    private Task DeclareTopologyAsync()
     {
-        if (_channel == null) return;
+        if (_channel == null) return Task.CompletedTask;
 
         // Declare exchanges for different event types
         var exchanges = new[]
@@ -278,6 +282,7 @@ public class RabbitMQBroker : IMessageBroker
         }
 
         _logger.LogDebug("Declared RabbitMQ topology");
+        return Task.CompletedTask;
     }
 
     private string GetExchangeName(string topic)

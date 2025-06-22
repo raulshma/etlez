@@ -4,6 +4,7 @@ using ETLFramework.Core.Interfaces;
 using ETLFramework.Core.Models;
 using ETLFramework.Core.Exceptions;
 using Microsoft.Extensions.Logging;
+using System.Runtime.CompilerServices;
 
 namespace ETLFramework.Connectors.FileSystem;
 
@@ -47,7 +48,7 @@ public class JsonConnector : BaseConnector, ISourceConnector<DataRecord>, IDesti
         Logger.LogInformation("Reading JSON file: {FilePath}", _filePath);
 
         using var fileStream = new FileStream(_filePath, FileMode.Open, FileAccess.Read);
-        
+
         if (_isArrayFormat)
         {
             await foreach (var record in ReadJsonArrayAsync(fileStream, cancellationToken))
@@ -101,7 +102,7 @@ public class JsonConnector : BaseConnector, ISourceConnector<DataRecord>, IDesti
                 // For JSON arrays, we need to parse to count elements
                 using var fileStream = new FileStream(_filePath, FileMode.Open, FileAccess.Read);
                 using var document = await JsonDocument.ParseAsync(fileStream, cancellationToken: cancellationToken);
-                
+
                 if (document.RootElement.ValueKind == JsonValueKind.Array)
                 {
                     return document.RootElement.GetArrayLength();
@@ -116,7 +117,7 @@ public class JsonConnector : BaseConnector, ISourceConnector<DataRecord>, IDesti
                 // For JSON Lines, count the number of lines
                 var lineCount = 0L;
                 using var reader = new StreamReader(_filePath, Encoding.UTF8);
-                
+
                 while (await reader.ReadLineAsync() != null)
                 {
                     lineCount++;
@@ -161,7 +162,7 @@ public class JsonConnector : BaseConnector, ISourceConnector<DataRecord>, IDesti
             using var document = await JsonDocument.ParseAsync(fileStream, cancellationToken: cancellationToken);
 
             JsonElement sampleElement;
-            
+
             if (document.RootElement.ValueKind == JsonValueKind.Array && document.RootElement.GetArrayLength() > 0)
             {
                 sampleElement = document.RootElement[0];
@@ -179,7 +180,7 @@ public class JsonConnector : BaseConnector, ISourceConnector<DataRecord>, IDesti
             foreach (var property in sampleElement.EnumerateObject())
             {
                 var dataType = GetDataTypeFromJsonElement(property.Value);
-                
+
                 schema.Fields.Add(new DataField
                 {
                     Name = property.Name,
@@ -237,7 +238,7 @@ public class JsonConnector : BaseConnector, ISourceConnector<DataRecord>, IDesti
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error writing to JSON file: {FilePath}", _filePath);
-            
+
             throw ConnectorException.CreateWriteFailure(
                 $"Failed to write to JSON file: {ex.Message}",
                 Id,
@@ -248,15 +249,17 @@ public class JsonConnector : BaseConnector, ISourceConnector<DataRecord>, IDesti
     /// <inheritdoc />
     public async Task<WriteResult> WriteBatchAsync(IEnumerable<DataRecord> batch, CancellationToken cancellationToken = default)
     {
-        async IAsyncEnumerable<DataRecord> ConvertToAsyncEnumerable()
+        async IAsyncEnumerable<DataRecord> ConvertToAsyncEnumerable([EnumeratorCancellation] CancellationToken token)
         {
             foreach (var record in batch)
             {
+                token.ThrowIfCancellationRequested();
                 yield return record;
+                await Task.CompletedTask; // optional: forces compiler to treat it as async
             }
         }
 
-        return await WriteAsync(ConvertToAsyncEnumerable(), cancellationToken);
+        return await WriteAsync(ConvertToAsyncEnumerable(cancellationToken), cancellationToken);
     }
 
     /// <inheritdoc />
@@ -311,8 +314,8 @@ public class JsonConnector : BaseConnector, ISourceConnector<DataRecord>, IDesti
             return Task.FromResult(new ConnectionTestResult
             {
                 IsSuccessful = canRead || canWrite,
-                Message = canRead ? "File exists and is readable" : 
-                         canWrite ? "Directory exists and is writable" : 
+                Message = canRead ? "File exists and is readable" :
+                         canWrite ? "Directory exists and is writable" :
                          "File does not exist and directory is not accessible"
             });
         }
@@ -395,7 +398,7 @@ public class JsonConnector : BaseConnector, ISourceConnector<DataRecord>, IDesti
     private async IAsyncEnumerable<DataRecord> ReadJsonArrayAsync(Stream stream, [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken)
     {
         using var document = await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken);
-        
+
         if (document.RootElement.ValueKind == JsonValueKind.Array)
         {
             var recordNumber = 0L;
@@ -515,7 +518,7 @@ public class JsonConnector : BaseConnector, ISourceConnector<DataRecord>, IDesti
         foreach (var field in record.Fields)
         {
             writer.WritePropertyName(field.Key);
-            
+
             if (field.Value == null)
             {
                 writer.WriteNullValue();

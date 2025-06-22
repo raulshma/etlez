@@ -6,6 +6,7 @@ using ETLFramework.Core.Interfaces;
 using ETLFramework.Core.Models;
 using ETLFramework.Core.Exceptions;
 using Microsoft.Extensions.Logging;
+using System.Runtime.CompilerServices;
 
 namespace ETLFramework.Connectors.FileSystem;
 
@@ -121,7 +122,7 @@ public class CsvConnector : BaseConnector, ISourceConnector<DataRecord>, IDestin
             // Quick estimation by counting lines
             var lineCount = 0L;
             using var reader = new StreamReader(_filePath, Encoding.UTF8);
-            
+
             while (await reader.ReadLineAsync() != null)
             {
                 lineCount++;
@@ -239,7 +240,7 @@ public class CsvConnector : BaseConnector, ISourceConnector<DataRecord>, IDestin
                 if (isFirstRecord)
                 {
                     headers = record.Fields.Keys.ToList();
-                    
+
                     // Write header if configured and not appending
                     if (_csvConfig.HasHeaderRecord && fileMode != FileMode.Append)
                     {
@@ -249,7 +250,7 @@ public class CsvConnector : BaseConnector, ISourceConnector<DataRecord>, IDestin
                         }
                         await csv.NextRecordAsync();
                     }
-                    
+
                     isFirstRecord = false;
                 }
 
@@ -282,7 +283,7 @@ public class CsvConnector : BaseConnector, ISourceConnector<DataRecord>, IDestin
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error writing to CSV file: {FilePath}", _filePath);
-            
+
             throw ConnectorException.CreateWriteFailure(
                 $"Failed to write to CSV file: {ex.Message}",
                 Id,
@@ -293,16 +294,17 @@ public class CsvConnector : BaseConnector, ISourceConnector<DataRecord>, IDestin
     /// <inheritdoc />
     public async Task<WriteResult> WriteBatchAsync(IEnumerable<DataRecord> batch, CancellationToken cancellationToken = default)
     {
-        // Convert to async enumerable manually
-        async IAsyncEnumerable<DataRecord> ConvertToAsyncEnumerable()
+        async IAsyncEnumerable<DataRecord> ConvertToAsyncEnumerable([EnumeratorCancellation] CancellationToken token)
         {
             foreach (var record in batch)
             {
+                token.ThrowIfCancellationRequested();
                 yield return record;
+                await Task.CompletedTask; // optional: forces compiler to treat it as async
             }
         }
 
-        return await WriteAsync(ConvertToAsyncEnumerable(), cancellationToken);
+        return await WriteAsync(ConvertToAsyncEnumerable(cancellationToken), cancellationToken);
     }
 
     /// <inheritdoc />
@@ -361,8 +363,8 @@ public class CsvConnector : BaseConnector, ISourceConnector<DataRecord>, IDestin
             return Task.FromResult(new ConnectionTestResult
             {
                 IsSuccessful = canRead || canWrite,
-                Message = canRead ? "File exists and is readable" : 
-                         canWrite ? "Directory exists and is writable" : 
+                Message = canRead ? "File exists and is readable" :
+                         canWrite ? "Directory exists and is writable" :
                          "File does not exist and directory is not accessible"
             });
         }

@@ -5,6 +5,7 @@ using ETLFramework.Core.Interfaces;
 using ETLFramework.Core.Models;
 using ETLFramework.Core.Exceptions;
 using Microsoft.Extensions.Logging;
+using System.Runtime.CompilerServices;
 
 namespace ETLFramework.Connectors.Database;
 
@@ -90,14 +91,14 @@ public abstract class BaseDatabaseConnector : BaseConnector, ISourceConnector<Da
         {
             using var testConnection = CreateConnection();
             await testConnection.OpenAsync(cancellationToken);
-            
+
             // Test with a simple query
             using var command = testConnection.CreateCommand();
             command.CommandText = "SELECT 1";
             command.CommandTimeout = (int)(Configuration.CommandTimeout?.TotalSeconds ?? 30);
-            
+
             var result = await command.ExecuteScalarAsync(cancellationToken);
-            
+
             return new ConnectionTestResult
             {
                 IsSuccessful = true,
@@ -210,7 +211,7 @@ public abstract class BaseDatabaseConnector : BaseConnector, ISourceConnector<Da
         }
 
         var query = Configuration.GetConnectionProperty<string>("query") ?? $"SELECT * FROM {tableName}";
-        
+
         Logger.LogInformation("Reading from database table: {TableName}", tableName);
 
         using var command = _connection!.CreateCommand();
@@ -307,12 +308,12 @@ public abstract class BaseDatabaseConnector : BaseConnector, ISourceConnector<Da
             command.Transaction = _currentTransaction;
 
             using var reader = await command.ExecuteReaderAsync(cancellationToken);
-            
+
             for (int i = 0; i < reader.FieldCount; i++)
             {
                 var fieldName = reader.GetName(i);
                 var fieldType = reader.GetFieldType(i);
-                
+
                 schema.Fields.Add(new DataField
                 {
                     Name = fieldName,
@@ -374,7 +375,7 @@ public abstract class BaseDatabaseConnector : BaseConnector, ISourceConnector<Da
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error writing to database table: {TableName}", tableName);
-            
+
             throw ConnectorException.CreateWriteFailure(
                 $"Failed to write to database table {tableName}: {ex.Message}",
                 Id,
@@ -385,15 +386,16 @@ public abstract class BaseDatabaseConnector : BaseConnector, ISourceConnector<Da
     /// <inheritdoc />
     public async Task<WriteResult> WriteBatchAsync(IEnumerable<DataRecord> batch, CancellationToken cancellationToken = default)
     {
-        async IAsyncEnumerable<DataRecord> ConvertToAsyncEnumerable()
+        async IAsyncEnumerable<DataRecord> ConvertToAsyncEnumerable([EnumeratorCancellation] CancellationToken token)
         {
             foreach (var record in batch)
             {
+                token.ThrowIfCancellationRequested();
                 yield return record;
+                await Task.CompletedTask; // optional: forces compiler to treat it as async
             }
         }
-        
-        return await WriteAsync(ConvertToAsyncEnumerable(), cancellationToken);
+        return await WriteAsync(ConvertToAsyncEnumerable(cancellationToken), cancellationToken);
     }
 
     /// <inheritdoc />
@@ -438,7 +440,7 @@ public abstract class BaseDatabaseConnector : BaseConnector, ISourceConnector<Da
 
         _currentTransaction = await _connection!.BeginTransactionAsync(cancellationToken);
         Logger.LogDebug("Database transaction started");
-        
+
         return _currentTransaction;
     }
 
@@ -456,7 +458,7 @@ public abstract class BaseDatabaseConnector : BaseConnector, ISourceConnector<Da
         await _currentTransaction.CommitAsync(cancellationToken);
         _currentTransaction.Dispose();
         _currentTransaction = null;
-        
+
         Logger.LogDebug("Database transaction committed");
     }
 
@@ -474,7 +476,7 @@ public abstract class BaseDatabaseConnector : BaseConnector, ISourceConnector<Da
         await _currentTransaction.RollbackAsync(cancellationToken);
         _currentTransaction.Dispose();
         _currentTransaction = null;
-        
+
         Logger.LogDebug("Database transaction rolled back");
     }
 
@@ -607,7 +609,7 @@ public abstract class BaseDatabaseConnector : BaseConnector, ISourceConnector<Da
     protected virtual async Task CreateTableAsync(string tableName, DataSchema schema, CancellationToken cancellationToken)
     {
         var sql = BuildCreateTableStatement(tableName, schema);
-        
+
         using var command = _connection!.CreateCommand();
         command.CommandText = sql;
         command.CommandTimeout = (int)(Configuration.CommandTimeout?.TotalSeconds ?? 30);
@@ -625,15 +627,15 @@ public abstract class BaseDatabaseConnector : BaseConnector, ISourceConnector<Da
     protected virtual string BuildCreateTableStatement(string tableName, DataSchema schema)
     {
         var columns = new StringBuilder();
-        
+
         foreach (var field in schema.Fields)
         {
             if (columns.Length > 0)
                 columns.Append(", ");
-                
+
             var sqlType = MapDataTypeToSql(field.DataType);
             columns.Append($"{field.Name} {sqlType}");
-            
+
             if (field.IsRequired)
                 columns.Append(" NOT NULL");
         }

@@ -1451,6 +1451,7 @@ public class DemoPipelineService : BackgroundService
                 // Custom mapping for full name
                 .MapCustom("first_nm", "fullName", async (record, ct) =>
                 {
+                    await Task.Yield(); // Make it truly async
                     var firstName = record.GetField<string>("first_nm");
                     var lastName = record.GetField<string>("last_nm");
                     return $"{firstName} {lastName}";

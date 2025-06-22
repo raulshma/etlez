@@ -1,3 +1,4 @@
+using System.Linq;
 using System.Text;
 using System.Xml;
 using System.Xml.Linq;
@@ -5,6 +6,7 @@ using ETLFramework.Core.Interfaces;
 using ETLFramework.Core.Models;
 using ETLFramework.Core.Exceptions;
 using Microsoft.Extensions.Logging;
+using System.Runtime.CompilerServices;
 
 namespace ETLFramework.Connectors.FileSystem;
 
@@ -219,7 +221,7 @@ public class XmlConnector : BaseConnector, ISourceConnector<DataRecord>, IDestin
             }
 
             var document = new XDocument(new XDeclaration("1.0", "utf-8", "yes"), rootElement);
-            
+
             using var fileStream = new FileStream(_filePath, FileMode.Create, FileAccess.Write);
             await document.SaveAsync(fileStream, SaveOptions.None, cancellationToken);
 
@@ -235,7 +237,7 @@ public class XmlConnector : BaseConnector, ISourceConnector<DataRecord>, IDestin
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error writing to XML file: {FilePath}", _filePath);
-            
+
             throw ConnectorException.CreateWriteFailure(
                 $"Failed to write to XML file: {ex.Message}",
                 Id,
@@ -246,15 +248,17 @@ public class XmlConnector : BaseConnector, ISourceConnector<DataRecord>, IDestin
     /// <inheritdoc />
     public async Task<WriteResult> WriteBatchAsync(IEnumerable<DataRecord> batch, CancellationToken cancellationToken = default)
     {
-        async IAsyncEnumerable<DataRecord> ConvertToAsyncEnumerable()
+        async IAsyncEnumerable<DataRecord> ConvertToAsyncEnumerable([EnumeratorCancellation] CancellationToken token)
         {
             foreach (var record in batch)
             {
+                token.ThrowIfCancellationRequested();
                 yield return record;
+                await Task.CompletedTask; // optional: forces compiler to treat it as async
             }
         }
 
-        return await WriteAsync(ConvertToAsyncEnumerable(), cancellationToken);
+        return await WriteAsync(ConvertToAsyncEnumerable(cancellationToken), cancellationToken);
     }
 
     /// <inheritdoc />
@@ -309,8 +313,8 @@ public class XmlConnector : BaseConnector, ISourceConnector<DataRecord>, IDestin
             return Task.FromResult(new ConnectionTestResult
             {
                 IsSuccessful = canRead || canWrite,
-                Message = canRead ? "File exists and is readable" : 
-                         canWrite ? "Directory exists and is writable" : 
+                Message = canRead ? "File exists and is readable" :
+                         canWrite ? "Directory exists and is writable" :
                          "File does not exist and directory is not accessible"
             });
         }

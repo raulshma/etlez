@@ -200,7 +200,7 @@ public class ConnectorHealthChecker
             {
                 Name = "Connectivity",
                 Status = testResult.IsSuccessful ? HealthStatus.Healthy : HealthStatus.Critical,
-                Message = testResult.Message,
+                Message = testResult.Message ?? "No message provided",
                 Duration = connectivityStopwatch.Elapsed
             };
 

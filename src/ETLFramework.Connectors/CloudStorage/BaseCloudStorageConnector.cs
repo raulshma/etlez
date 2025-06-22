@@ -3,6 +3,7 @@ using ETLFramework.Core.Models;
 using ETLFramework.Core.Exceptions;
 using ETLFramework.Connectors.FileSystem;
 using Microsoft.Extensions.Logging;
+using System.Runtime.CompilerServices;
 
 namespace ETLFramework.Connectors.CloudStorage;
 
@@ -96,8 +97,8 @@ public abstract class BaseCloudStorageConnector : BaseConnector, ISourceConnecto
     {
         await EnsureConnectedAsync(cancellationToken);
 
-        var container = Configuration.GetConnectionProperty<string>("container") ?? 
-                       Configuration.GetConnectionProperty<string>("bucket") ?? 
+        var container = Configuration.GetConnectionProperty<string>("container") ??
+                       Configuration.GetConnectionProperty<string>("bucket") ??
                        throw new ConnectorException("Container or bucket name must be specified");
 
         var prefix = Configuration.GetConnectionProperty<string>("prefix");
@@ -177,9 +178,9 @@ public abstract class BaseCloudStorageConnector : BaseConnector, ISourceConnecto
         {
             await EnsureConnectedAsync(cancellationToken);
 
-            var container = Configuration.GetConnectionProperty<string>("container") ?? 
+            var container = Configuration.GetConnectionProperty<string>("container") ??
                            Configuration.GetConnectionProperty<string>("bucket");
-            
+
             if (string.IsNullOrEmpty(container))
                 return null;
 
@@ -203,8 +204,8 @@ public abstract class BaseCloudStorageConnector : BaseConnector, ISourceConnecto
     {
         await EnsureConnectedAsync(cancellationToken);
 
-        var container = Configuration.GetConnectionProperty<string>("container") ?? 
-                       Configuration.GetConnectionProperty<string>("bucket") ?? 
+        var container = Configuration.GetConnectionProperty<string>("container") ??
+                       Configuration.GetConnectionProperty<string>("bucket") ??
                        throw new ConnectorException("Container or bucket name must be specified");
 
         var schema = new DataSchema
@@ -233,7 +234,7 @@ public abstract class BaseCloudStorageConnector : BaseConnector, ISourceConnecto
                 if (fileConnector is ISourceConnector<DataRecord> sourceConnector)
                 {
                     var fileSchema = await sourceConnector.GetSchemaAsync(cancellationToken);
-                    
+
                     // Merge file schema with cloud metadata schema
                     foreach (var field in fileSchema.Fields)
                     {
@@ -257,13 +258,13 @@ public abstract class BaseCloudStorageConnector : BaseConnector, ISourceConnecto
     {
         await EnsureConnectedAsync(cancellationToken);
 
-        var container = Configuration.GetConnectionProperty<string>("container") ?? 
-                       Configuration.GetConnectionProperty<string>("bucket") ?? 
+        var container = Configuration.GetConnectionProperty<string>("container") ??
+                       Configuration.GetConnectionProperty<string>("bucket") ??
                        throw new ConnectorException("Container or bucket name must be specified");
 
-        var fileName = Configuration.GetConnectionProperty<string>("fileName") ?? 
+        var fileName = Configuration.GetConnectionProperty<string>("fileName") ??
                       $"output_{DateTime.UtcNow:yyyyMMdd_HHmmss}";
-        
+
         var fileFormat = Configuration.GetConnectionProperty<string>("fileFormat") ?? "csv";
 
         Logger.LogInformation("Writing to cloud storage: {Container}/{FileName}", container, fileName);
@@ -285,7 +286,7 @@ public abstract class BaseCloudStorageConnector : BaseConnector, ISourceConnecto
             {
                 // Write data to memory stream using file connector
                 using var memoryStream = new MemoryStream();
-                
+
                 // For now, use a simple approach - collect all records and write them
                 var allRecords = new List<DataRecord>();
                 await foreach (var record in data)
@@ -313,7 +314,7 @@ public abstract class BaseCloudStorageConnector : BaseConnector, ISourceConnecto
                 cloudFile.Dispose();
             }
 
-            Logger.LogInformation("Completed writing to cloud storage: {Container}/{FileName}, Records: {RecordsWritten}", 
+            Logger.LogInformation("Completed writing to cloud storage: {Container}/{FileName}, Records: {RecordsWritten}",
                 container, fileName, recordsWritten);
 
             return new WriteResult
@@ -326,7 +327,7 @@ public abstract class BaseCloudStorageConnector : BaseConnector, ISourceConnecto
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error writing to cloud storage: {Container}/{FileName}", container, fileName);
-            
+
             throw ConnectorException.CreateWriteFailure(
                 $"Failed to write to cloud storage {container}/{fileName}: {ex.Message}",
                 Id,
@@ -337,15 +338,17 @@ public abstract class BaseCloudStorageConnector : BaseConnector, ISourceConnecto
     /// <inheritdoc />
     public async Task<WriteResult> WriteBatchAsync(IEnumerable<DataRecord> batch, CancellationToken cancellationToken = default)
     {
-        async IAsyncEnumerable<DataRecord> ConvertToAsyncEnumerable()
+        async IAsyncEnumerable<DataRecord> ConvertToAsyncEnumerable([EnumeratorCancellation] CancellationToken token)
         {
             foreach (var record in batch)
             {
+                token.ThrowIfCancellationRequested();
                 yield return record;
+                await Task.CompletedTask; // optional: forces compiler to treat it as async
             }
         }
-        
-        return await WriteAsync(ConvertToAsyncEnumerable(), cancellationToken);
+
+        return await WriteAsync(ConvertToAsyncEnumerable(cancellationToken), cancellationToken);
     }
 
     /// <inheritdoc />
@@ -353,7 +356,7 @@ public abstract class BaseCloudStorageConnector : BaseConnector, ISourceConnecto
     {
         await EnsureConnectedAsync(cancellationToken);
 
-        var container = Configuration.GetConnectionProperty<string>("container") ?? 
+        var container = Configuration.GetConnectionProperty<string>("container") ??
                        Configuration.GetConnectionProperty<string>("bucket");
 
         if (!string.IsNullOrEmpty(container) && _options.CreateContainerIfNotExists)

@@ -33,15 +33,16 @@ public class InMemoryMessageBroker : IMessageBroker
     public string BrokerType { get; }
 
     /// <inheritdoc />
-    public async Task ConnectAsync(CancellationToken cancellationToken = default)
+    public Task ConnectAsync(CancellationToken cancellationToken = default)
     {
         if (_isConnected)
-            return;
+            return Task.CompletedTask;
 
         _processingTask = Task.Run(ProcessMessagesAsync, cancellationToken);
         _isConnected = true;
 
         _logger.LogInformation("Connected to in-memory message broker");
+        return Task.CompletedTask;
     }
 
     /// <inheritdoc />
@@ -74,7 +75,7 @@ public class InMemoryMessageBroker : IMessageBroker
     }
 
     /// <inheritdoc />
-    public async Task PublishAsync<T>(string topic, T message, MessageProperties properties, CancellationToken cancellationToken = default)
+    public Task PublishAsync<T>(string topic, T message, MessageProperties properties, CancellationToken cancellationToken = default)
     {
         if (!_isConnected)
             throw new InvalidOperationException("Broker is not connected");
@@ -91,6 +92,7 @@ public class InMemoryMessageBroker : IMessageBroker
         _messageQueue.Enqueue(envelope);
 
         _logger.LogDebug("Published message to topic: {Topic}", topic);
+        return Task.CompletedTask;
     }
 
     /// <inheritdoc />
@@ -109,7 +111,7 @@ public class InMemoryMessageBroker : IMessageBroker
     }
 
     /// <inheritdoc />
-    public async Task SubscribeAsync<T>(string topic, Func<T, MessageContext, Task> handler, SubscriptionOptions options, CancellationToken cancellationToken = default)
+    public Task SubscribeAsync<T>(string topic, Func<T, MessageContext, Task> handler, SubscriptionOptions options, CancellationToken cancellationToken = default)
     {
         var subscription = new Subscription
         {
@@ -135,7 +137,7 @@ public class InMemoryMessageBroker : IMessageBroker
         };
 
         _subscriptions.AddOrUpdate(topic,
-            new List<Subscription> { subscription },
+            [subscription],
             (key, existing) =>
             {
                 existing.Add(subscription);
@@ -143,13 +145,15 @@ public class InMemoryMessageBroker : IMessageBroker
             });
 
         _logger.LogInformation("Subscribed to topic: {Topic}", topic);
+        return Task.CompletedTask;
     }
 
     /// <inheritdoc />
-    public async Task UnsubscribeAsync(string topic, CancellationToken cancellationToken = default)
+    public Task UnsubscribeAsync(string topic, CancellationToken cancellationToken = default)
     {
         _subscriptions.TryRemove(topic, out _);
         _logger.LogInformation("Unsubscribed from topic: {Topic}", topic);
+        return Task.CompletedTask;
     }
 
     private async Task ProcessMessagesAsync()
