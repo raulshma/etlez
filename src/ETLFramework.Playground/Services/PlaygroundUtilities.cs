@@ -45,25 +45,54 @@ public class PlaygroundUtilities : IPlaygroundUtilities
             .BorderColor(Color.Blue)
             .RoundedBorder();
 
-        // Get properties for columns
-        var properties = typeof(T).GetProperties(BindingFlags.Public | BindingFlags.Instance);
-        
-        // Add columns
-        foreach (var prop in properties)
-        {
-            table.AddColumn(new TableColumn(prop.Name).Centered());
-        }
+        var firstItem = dataList.First();
 
-        // Add rows (limit to first 10 for display)
-        foreach (var item in dataList.Take(10))
+        // Handle dictionaries specially
+        if (firstItem is IDictionary<string, object?> dict)
         {
-            var values = properties.Select(prop => 
+            // Add columns from dictionary keys
+            foreach (var key in dict.Keys)
             {
-                var value = prop.GetValue(item);
-                return value?.ToString() ?? "[dim]null[/]";
-            }).ToArray();
-            
-            table.AddRow(values);
+                table.AddColumn(new TableColumn(key).Centered());
+            }
+
+            // Add rows from dictionary values
+            foreach (var item in dataList.Take(10))
+            {
+                if (item is IDictionary<string, object?> itemDict)
+                {
+                    var values = dict.Keys.Select(key =>
+                    {
+                        var value = itemDict.TryGetValue(key, out var val) ? val : null;
+                        return value?.ToString() ?? "[dim]null[/]";
+                    }).ToArray();
+
+                    table.AddRow(values);
+                }
+            }
+        }
+        else
+        {
+            // Handle regular objects with properties
+            var properties = typeof(T).GetProperties(BindingFlags.Public | BindingFlags.Instance);
+
+            // Add columns
+            foreach (var prop in properties)
+            {
+                table.AddColumn(new TableColumn(prop.Name).Centered());
+            }
+
+            // Add rows (limit to first 10 for display)
+            foreach (var item in dataList.Take(10))
+            {
+                var values = properties.Select(prop =>
+                {
+                    var value = prop.GetValue(item);
+                    return value?.ToString() ?? "[dim]null[/]";
+                }).ToArray();
+
+                table.AddRow(values);
+            }
         }
 
         AnsiConsole.Write(table);
