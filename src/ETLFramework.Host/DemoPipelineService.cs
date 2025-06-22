@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.DependencyInjection;
 using ETLFramework.Core.Interfaces;
 using ETLFramework.Core.Models;
 using ETLFramework.Pipeline;
@@ -18,6 +19,7 @@ public class DemoPipelineService : BackgroundService
     private readonly IPipelineOrchestrator _orchestrator;
     private readonly PipelineBuilder _pipelineBuilder;
     private readonly IConnectorFactory _connectorFactory;
+    private readonly IServiceProvider _serviceProvider;
 
     /// <summary>
     /// Initializes a new instance of the DemoPipelineService class.
@@ -26,16 +28,19 @@ public class DemoPipelineService : BackgroundService
     /// <param name="orchestrator">The pipeline orchestrator</param>
     /// <param name="pipelineBuilder">The pipeline builder</param>
     /// <param name="connectorFactory">The connector factory</param>
+    /// <param name="serviceProvider">The service provider</param>
     public DemoPipelineService(
         ILogger<DemoPipelineService> logger,
         IPipelineOrchestrator orchestrator,
         PipelineBuilder pipelineBuilder,
-        IConnectorFactory connectorFactory)
+        IConnectorFactory connectorFactory,
+        IServiceProvider serviceProvider)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _orchestrator = orchestrator ?? throw new ArgumentNullException(nameof(orchestrator));
         _pipelineBuilder = pipelineBuilder ?? throw new ArgumentNullException(nameof(pipelineBuilder));
         _connectorFactory = connectorFactory ?? throw new ArgumentNullException(nameof(connectorFactory));
+        _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
     }
 
     /// <inheritdoc />
@@ -92,6 +97,9 @@ public class DemoPipelineService : BackgroundService
 
             // Demonstrate enhanced connector factory system
             await DemonstrateConnectorFactorySystemAsync(stoppingToken);
+
+            // Demonstrate transformation framework
+            await DemonstrateTransformationFrameworkAsync(stoppingToken);
 
             // Wait a bit before shutting down
             await Task.Delay(2000, stoppingToken);
@@ -865,6 +873,301 @@ public class DemoPipelineService : BackgroundService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error in connector health checking demo");
+        }
+    }
+
+    /// <summary>
+    /// Demonstrates the transformation framework capabilities.
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>A task representing the async operation</returns>
+    private async Task DemonstrateTransformationFrameworkAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            _logger.LogInformation("=== Transformation Framework Demonstration ===");
+
+            // Demonstrate field transformations
+            await DemonstrateFieldTransformationsAsync(cancellationToken);
+
+            // Demonstrate transformation pipeline
+            await DemonstrateTransformationPipelineAsync(cancellationToken);
+
+            // Demonstrate transformation processor
+            await DemonstrateTransformationProcessorAsync(cancellationToken);
+
+            _logger.LogInformation("=== Transformation Framework Demonstration Complete ===");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error demonstrating transformation framework");
+        }
+    }
+
+    /// <summary>
+    /// Demonstrates field transformations.
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>A task representing the async operation</returns>
+    private async Task DemonstrateFieldTransformationsAsync(CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("--- Field Transformations Demo ---");
+
+        try
+        {
+            // Create sample data
+            var sampleRecord = new DataRecord();
+            sampleRecord.SetField("firstName", "john");
+            sampleRecord.SetField("lastName", "DOE");
+            sampleRecord.SetField("email", "  JOHN.DOE@EXAMPLE.COM  ");
+            sampleRecord.SetField("age", "25");
+            sampleRecord.SetField("salary", "50000.75");
+            sampleRecord.SetField("bonus", "5000.25");
+
+            _logger.LogInformation("Original Record:");
+            _logger.LogInformation("  firstName: {firstName}", sampleRecord.GetField<string>("firstName"));
+            _logger.LogInformation("  lastName: {lastName}", sampleRecord.GetField<string>("lastName"));
+            _logger.LogInformation("  email: {email}", sampleRecord.GetField<string>("email"));
+            _logger.LogInformation("  age: {age}", sampleRecord.GetField<string>("age"));
+            _logger.LogInformation("  salary: {salary}", sampleRecord.GetField<string>("salary"));
+            _logger.LogInformation("  bonus: {bonus}", sampleRecord.GetField<string>("bonus"));
+
+            // Create transformation context
+            var context = new ETLFramework.Transformation.Models.TransformationContext("FieldTransformationsDemo", cancellationToken);
+
+            // String transformations
+            var uppercaseTransform = new ETLFramework.Transformation.Transformations.FieldTransformations.UppercaseTransformation("firstName");
+            var lowercaseTransform = new ETLFramework.Transformation.Transformations.FieldTransformations.LowercaseTransformation("lastName");
+            var trimTransform = new ETLFramework.Transformation.Transformations.FieldTransformations.TrimTransformation("email");
+
+            // Numeric transformations
+            var roundTransform = new ETLFramework.Transformation.Transformations.FieldTransformations.RoundTransformation("salary", 0);
+            var addTransform = new ETLFramework.Transformation.Transformations.FieldTransformations.AddTransformation("age", 1, "ageNextYear");
+
+            // Calculate transformation
+            var calculateTransform = new ETLFramework.Transformation.Transformations.FieldTransformations.CalculateTransformation(
+                "salary", "bonus", ETLFramework.Transformation.Transformations.FieldTransformations.MathOperation.Add, "totalCompensation");
+
+            // Concatenate transformation
+            var concatenateTransform = new ETLFramework.Transformation.Transformations.FieldTransformations.ConcatenateTransformation(
+                new[] { "firstName", "lastName" }, "fullName", " ");
+
+            // Apply transformations
+            var transformations = new ETLFramework.Transformation.Interfaces.ITransformation[]
+            {
+                uppercaseTransform,
+                lowercaseTransform,
+                trimTransform,
+                roundTransform,
+                addTransform,
+                calculateTransform,
+                concatenateTransform
+            };
+
+            var currentRecord = sampleRecord;
+            foreach (var transformation in transformations)
+            {
+                var result = await transformation.TransformAsync(currentRecord, context, cancellationToken);
+                if (result.IsSuccessful && result.OutputRecord != null)
+                {
+                    currentRecord = result.OutputRecord;
+                    _logger.LogInformation("Applied {TransformationName}: Success", transformation.Name);
+                }
+                else
+                {
+                    _logger.LogWarning("Applied {TransformationName}: Failed - {Errors}",
+                        transformation.Name, string.Join(", ", result.Errors.Select(e => e.Message)));
+                }
+            }
+
+            _logger.LogInformation("Transformed Record:");
+            _logger.LogInformation("  firstName: {firstName}", currentRecord.GetField<string>("firstName"));
+            _logger.LogInformation("  lastName: {lastName}", currentRecord.GetField<string>("lastName"));
+            _logger.LogInformation("  email: {email}", currentRecord.GetField<string>("email"));
+            _logger.LogInformation("  salary: {salary}", currentRecord.GetField<string>("salary"));
+            _logger.LogInformation("  ageNextYear: {ageNextYear}", currentRecord.GetField<string>("ageNextYear"));
+            _logger.LogInformation("  totalCompensation: {totalCompensation}", currentRecord.GetField<string>("totalCompensation"));
+            _logger.LogInformation("  fullName: {fullName}", currentRecord.GetField<string>("fullName"));
+
+            // Show transformation statistics
+            var stats = context.Statistics;
+            _logger.LogInformation("Transformation Statistics:");
+            _logger.LogInformation("  Records Processed: {RecordsProcessed}", stats.RecordsProcessed);
+            _logger.LogInformation("  Records Transformed: {RecordsTransformed}", stats.RecordsTransformed);
+            _logger.LogInformation("  Fields Transformed: {FieldsTransformed}", stats.FieldsTransformed);
+            _logger.LogInformation("  Total Processing Time: {TotalProcessingTime}ms", stats.TotalProcessingTime.TotalMilliseconds);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error in field transformations demo");
+        }
+    }
+
+    /// <summary>
+    /// Demonstrates transformation pipeline.
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>A task representing the async operation</returns>
+    private async Task DemonstrateTransformationPipelineAsync(CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("--- Transformation Pipeline Demo ---");
+
+        try
+        {
+            // Create sample data
+            var records = new List<DataRecord>();
+            for (int i = 1; i <= 3; i++)
+            {
+                var record = new DataRecord();
+                record.SetField("id", i.ToString());
+                record.SetField("name", $"user{i}");
+                record.SetField("score", (i * 10).ToString());
+                records.Add(record);
+            }
+
+            _logger.LogInformation("Input Records: {RecordCount}", records.Count);
+            foreach (var record in records)
+            {
+                _logger.LogInformation("  Record {id}: name={name}, score={score}",
+                    record.GetField<string>("id"), record.GetField<string>("name"), record.GetField<string>("score"));
+            }
+
+            // Create transformation processor
+            var processor = new ETLFramework.Transformation.Processors.TransformationProcessor(
+                _serviceProvider.GetRequiredService<ILogger<ETLFramework.Transformation.Processors.TransformationProcessor>>());
+
+            // Create transformation pipeline
+            var pipeline = new ETLFramework.Transformation.Pipeline.TransformationPipeline(
+                "DemoPipeline",
+                processor,
+                _serviceProvider.GetRequiredService<ILogger<ETLFramework.Transformation.Pipeline.TransformationPipeline>>());
+
+            // Create transformation stages
+            var stage1 = new ETLFramework.Transformation.Pipeline.TransformationStage(
+                "StringProcessing",
+                1,
+                processor,
+                _serviceProvider.GetRequiredService<ILogger<ETLFramework.Transformation.Pipeline.TransformationStage>>());
+
+            stage1.AddTransformation(new ETLFramework.Transformation.Transformations.FieldTransformations.UppercaseTransformation("name"));
+
+            var stage2 = new ETLFramework.Transformation.Pipeline.TransformationStage(
+                "NumericProcessing",
+                2,
+                processor,
+                _serviceProvider.GetRequiredService<ILogger<ETLFramework.Transformation.Pipeline.TransformationStage>>());
+
+            stage2.AddTransformation(new ETLFramework.Transformation.Transformations.FieldTransformations.MultiplyTransformation("score", 2, "doubledScore"));
+
+            // Add stages to pipeline
+            pipeline.AddStage(stage1);
+            pipeline.AddStage(stage2);
+
+            // Create transformation context
+            var context = new ETLFramework.Transformation.Models.TransformationContext("PipelineDemo", cancellationToken);
+
+            // Execute pipeline
+            var results = await pipeline.ExecuteAsync(records, context, cancellationToken);
+
+            _logger.LogInformation("Pipeline Results: {ResultCount}", results.Count());
+            foreach (var result in results.Where(r => r.IsSuccessful && r.OutputRecord != null))
+            {
+                var outputRecord = result.OutputRecord!;
+                _logger.LogInformation("  Result Record {id}: name={name}, score={score}, doubledScore={doubledScore}",
+                    outputRecord.GetField<string>("id"),
+                    outputRecord.GetField<string>("name"),
+                    outputRecord.GetField<string>("score"),
+                    outputRecord.GetField<string>("doubledScore"));
+            }
+
+            // Show pipeline statistics
+            var pipelineStats = pipeline.GetStatistics();
+            _logger.LogInformation("Pipeline Statistics:");
+            _logger.LogInformation("  Total Executions: {TotalExecutions}", pipelineStats.TotalExecutions);
+            _logger.LogInformation("  Total Records Processed: {TotalRecordsProcessed}", pipelineStats.TotalRecordsProcessed);
+            _logger.LogInformation("  Success Rate: {SuccessRate:F1}%", pipelineStats.SuccessRate);
+            _logger.LogInformation("  Total Execution Time: {TotalExecutionTime}ms", pipelineStats.TotalExecutionTime.TotalMilliseconds);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error in transformation pipeline demo");
+        }
+    }
+
+    /// <summary>
+    /// Demonstrates transformation processor.
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>A task representing the async operation</returns>
+    private async Task DemonstrateTransformationProcessorAsync(CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("--- Transformation Processor Demo ---");
+
+        try
+        {
+            // Create sample data
+            var records = new List<DataRecord>();
+            for (int i = 1; i <= 5; i++)
+            {
+                var record = new DataRecord();
+                record.SetField("value", (i * 100).ToString());
+                record.SetField("text", $"item{i}");
+                records.Add(record);
+            }
+
+            _logger.LogInformation("Processing {RecordCount} records with transformation processor", records.Count);
+
+            // Create transformations
+            var transformations = new ETLFramework.Transformation.Interfaces.ITransformation[]
+            {
+                new ETLFramework.Transformation.Transformations.FieldTransformations.RoundTransformation("value", 0),
+                new ETLFramework.Transformation.Transformations.FieldTransformations.UppercaseTransformation("text"),
+                new ETLFramework.Transformation.Transformations.FieldTransformations.ConcatenateTransformation(
+                    new[] { "text", "value" }, "combined", "_")
+            };
+
+            // Create processor and context
+            var processor = new ETLFramework.Transformation.Processors.TransformationProcessor(
+                _serviceProvider.GetRequiredService<ILogger<ETLFramework.Transformation.Processors.TransformationProcessor>>());
+
+            var context = new ETLFramework.Transformation.Models.TransformationContext("ProcessorDemo", cancellationToken);
+
+            // Validate transformations
+            var validationResult = processor.ValidateTransformations(transformations, context);
+            _logger.LogInformation("Transformation Validation: {IsValid}", validationResult.IsValid);
+
+            if (!validationResult.IsValid)
+            {
+                foreach (var error in validationResult.Errors)
+                {
+                    _logger.LogWarning("  Validation Error: {Error}", error);
+                }
+            }
+
+            // Process records
+            var results = await processor.ProcessRecordsAsync(records, transformations, context, cancellationToken);
+
+            _logger.LogInformation("Processing Results: {ResultCount}", results.Count());
+            foreach (var result in results.Where(r => r.IsSuccessful && r.OutputRecord != null))
+            {
+                var outputRecord = result.OutputRecord!;
+                _logger.LogInformation("  Processed Record: value={value}, text={text}, combined={combined}",
+                    outputRecord.GetField<string>("value"),
+                    outputRecord.GetField<string>("text"),
+                    outputRecord.GetField<string>("combined"));
+            }
+
+            // Show processor statistics
+            var processorStats = processor.GetStatistics();
+            _logger.LogInformation("Processor Statistics:");
+            _logger.LogInformation("  Total Records Processed: {TotalRecordsProcessed}", processorStats.TotalRecordsProcessed);
+            _logger.LogInformation("  Total Transformations Executed: {TotalTransformationsExecuted}", processorStats.TotalTransformationsExecuted);
+            _logger.LogInformation("  Success Rate: {SuccessRate:F1}%", processorStats.SuccessRate);
+            _logger.LogInformation("  Throughput: {Throughput:F1} records/second", processorStats.ThroughputRecordsPerSecond);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error in transformation processor demo");
         }
     }
 }
