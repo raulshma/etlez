@@ -896,6 +896,15 @@ public class DemoPipelineService : BackgroundService
             // Demonstrate transformation processor
             await DemonstrateTransformationProcessorAsync(cancellationToken);
 
+            // Demonstrate rule-based transformation system
+            await DemonstrateRuleBasedTransformationAsync(cancellationToken);
+
+            // Demonstrate data mapping engine
+            await DemonstrateDataMappingEngineAsync(cancellationToken);
+
+            // Demonstrate performance optimization
+            await DemonstratePerformanceOptimizationAsync(cancellationToken);
+
             _logger.LogInformation("=== Transformation Framework Demonstration Complete ===");
         }
         catch (Exception ex)
@@ -1168,6 +1177,522 @@ public class DemoPipelineService : BackgroundService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error in transformation processor demo");
+        }
+    }
+
+    /// <summary>
+    /// Demonstrates rule-based transformation system.
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>A task representing the async operation</returns>
+    private async Task DemonstrateRuleBasedTransformationAsync(CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("--- Rule-Based Transformation Demo ---");
+
+        try
+        {
+            // Create sample data with different scenarios
+            var records = new List<DataRecord>();
+
+            // Record 1: VIP customer
+            var record1 = new DataRecord();
+            record1.SetField("customerId", "CUST001");
+            record1.SetField("customerType", "VIP");
+            record1.SetField("orderAmount", "1500.00");
+            record1.SetField("email", "john.doe@example.com");
+            record1.SetField("status", "pending");
+            records.Add(record1);
+
+            // Record 2: Regular customer with high order
+            var record2 = new DataRecord();
+            record2.SetField("customerId", "CUST002");
+            record2.SetField("customerType", "Regular");
+            record2.SetField("orderAmount", "800.00");
+            record2.SetField("email", "jane.smith@example.com");
+            record2.SetField("status", "pending");
+            records.Add(record2);
+
+            // Record 3: Regular customer with low order
+            var record3 = new DataRecord();
+            record3.SetField("customerId", "CUST003");
+            record3.SetField("customerType", "Regular");
+            record3.SetField("orderAmount", "50.00");
+            record3.SetField("email", "bob.wilson@example.com");
+            record3.SetField("status", "pending");
+            records.Add(record3);
+
+            // Record 4: Customer with invalid email
+            var record4 = new DataRecord();
+            record4.SetField("customerId", "CUST004");
+            record4.SetField("customerType", "Regular");
+            record4.SetField("orderAmount", "200.00");
+            record4.SetField("email", "invalid-email");
+            record4.SetField("status", "pending");
+            records.Add(record4);
+
+            _logger.LogInformation("Input Records: {RecordCount}", records.Count);
+            foreach (var record in records)
+            {
+                _logger.LogInformation("  Record {customerId}: type={customerType}, amount={orderAmount}, email={email}, status={status}",
+                    record.GetField<string>("customerId"),
+                    record.GetField<string>("customerType"),
+                    record.GetField<string>("orderAmount"),
+                    record.GetField<string>("email"),
+                    record.GetField<string>("status"));
+            }
+
+            // Create rule engine
+            var ruleEngine = new ETLFramework.Transformation.Rules.TransformationRuleEngine(
+                _serviceProvider.GetRequiredService<ILogger<ETLFramework.Transformation.Rules.TransformationRuleEngine>>());
+
+            // Create rules using the fluent builder API
+
+            // Rule 1: VIP customers get priority processing
+            var vipRule = ETLFramework.Transformation.Rules.RuleBuilder
+                .Create("rule_vip", "VIP Priority Processing", "VIP customers get priority status", 100)
+                .WhenFieldEquals("customerType", "VIP")
+                .ThenSetField("priority", "HIGH")
+                .ThenSetField("status", "priority_processing")
+                .ThenLogMessage("VIP customer {customerId} flagged for priority processing")
+                .Build();
+
+            // Rule 2: High value orders get expedited processing
+            var highValueRule = ETLFramework.Transformation.Rules.RuleBuilder
+                .Create("rule_high_value", "High Value Order Processing", "Orders over $500 get expedited processing", 90)
+                .WhenFieldGreaterThan("orderAmount", 500.0m)
+                .ThenSetField("expedited", "true")
+                .ThenSetField("status", "expedited_processing")
+                .ThenLogMessage("High value order {customerId} flagged for expedited processing")
+                .Build();
+
+            // Rule 3: Invalid email addresses get flagged
+            var emailValidationRule = ETLFramework.Transformation.Rules.RuleBuilder
+                .Create("rule_email_validation", "Email Validation", "Flag records with invalid email addresses", 80)
+                .WhenFieldMatches("email", @"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+                .ThenSetField("emailValid", "true")
+                .Build();
+
+            // Rule 4: Invalid email fallback rule
+            var invalidEmailRule = ETLFramework.Transformation.Rules.RuleBuilder
+                .Create("rule_invalid_email", "Invalid Email Handler", "Handle records with invalid email addresses", 70)
+                .When("email", ETLFramework.Transformation.Rules.ConditionOperator.NotEquals, null)
+                .When("emailValid", ETLFramework.Transformation.Rules.ConditionOperator.NotEquals, "true")
+                .ThenSetField("emailValid", "false")
+                .ThenSetField("requiresReview", "true")
+                .ThenLogMessage("Invalid email detected for customer {customerId}: {email}")
+                .Build();
+
+            // Rule 5: Low value orders get standard processing
+            var standardProcessingRule = ETLFramework.Transformation.Rules.RuleBuilder
+                .Create("rule_standard", "Standard Processing", "Standard processing for regular orders", 60)
+                .WhenFieldEquals("status", "pending")
+                .ThenSetField("status", "standard_processing")
+                .ThenSetField("priority", "NORMAL")
+                .Build();
+
+            // Add rules to engine
+            ruleEngine.AddRule(vipRule);
+            ruleEngine.AddRule(highValueRule);
+            ruleEngine.AddRule(emailValidationRule);
+            ruleEngine.AddRule(invalidEmailRule);
+            ruleEngine.AddRule(standardProcessingRule);
+
+            // Create transformation context
+            var context = new ETLFramework.Transformation.Models.TransformationContext("RuleEngineDemo", cancellationToken);
+
+            // Validate rules
+            var validationResult = ruleEngine.ValidateRules(context);
+            _logger.LogInformation("Rule Validation: {IsValid}", validationResult.IsValid);
+            if (!validationResult.IsValid)
+            {
+                foreach (var error in validationResult.Errors)
+                {
+                    _logger.LogWarning("  Validation Error: {Error}", error.Message);
+                }
+            }
+
+            // Apply rules to records
+            _logger.LogInformation("Applying {RuleCount} rules to {RecordCount} records", ruleEngine.Rules.Count, records.Count);
+
+            var results = new List<Core.Models.TransformationResult>();
+            foreach (var record in records)
+            {
+                var result = await ruleEngine.ApplyRulesAsync(record, context, cancellationToken);
+                results.Add(result);
+            }
+
+            // Display results
+            _logger.LogInformation("Rule Processing Results:");
+            for (int i = 0; i < results.Count; i++)
+            {
+                var result = results[i];
+                var originalRecord = records[i];
+
+                if (result.IsSuccessful && result.OutputRecord != null)
+                {
+                    var processedRecord = result.OutputRecord;
+                    _logger.LogInformation("  Record {customerId} processed successfully:",
+                        originalRecord.GetField<string>("customerId"));
+                    _logger.LogInformation("    Status: {status}", processedRecord.GetField<string>("status"));
+                    _logger.LogInformation("    Priority: {priority}", processedRecord.GetField<string>("priority") ?? "Not Set");
+                    _logger.LogInformation("    Expedited: {expedited}", processedRecord.GetField<string>("expedited") ?? "false");
+                    _logger.LogInformation("    Email Valid: {emailValid}", processedRecord.GetField<string>("emailValid") ?? "Not Checked");
+                    _logger.LogInformation("    Requires Review: {requiresReview}", processedRecord.GetField<string>("requiresReview") ?? "false");
+                }
+                else
+                {
+                    _logger.LogWarning("  Record {customerId} processing failed: {Errors}",
+                        originalRecord.GetField<string>("customerId"),
+                        string.Join(", ", result.Errors.Select(e => e.Message)));
+                }
+            }
+
+            // Show rule engine statistics
+            var stats = ruleEngine.GetStatistics();
+            _logger.LogInformation("Rule Engine Statistics:");
+            _logger.LogInformation("  Total Rules: {TotalRules}", stats.TotalRules);
+            _logger.LogInformation("  Enabled Rules: {EnabledRules}", stats.EnabledRules);
+            _logger.LogInformation("  Rules by Priority: {RulesByPriority}",
+                string.Join(", ", stats.RulesByPriority.Select(kvp => $"Priority {kvp.Key}: {kvp.Value} rules")));
+
+            // Show transformation context metadata
+            var appliedRulesMetadata = context.GetMetadata<List<string>>("AppliedRules");
+            if (appliedRulesMetadata != null)
+            {
+                _logger.LogInformation("Applied Rules: {AppliedRules}", string.Join(", ", appliedRulesMetadata));
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error in rule-based transformation demo");
+        }
+    }
+
+    /// <summary>
+    /// Demonstrates data mapping engine capabilities.
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>A task representing the async operation</returns>
+    private async Task DemonstrateDataMappingEngineAsync(CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("--- Data Mapping Engine Demo ---");
+
+        try
+        {
+            // Create sample source data (e.g., from a legacy system)
+            var sourceRecords = new List<DataRecord>();
+
+            // Source Record 1: Customer data from legacy system
+            var sourceRecord1 = new DataRecord();
+            sourceRecord1.SetField("cust_id", "12345");
+            sourceRecord1.SetField("first_nm", "John");
+            sourceRecord1.SetField("last_nm", "Doe");
+            sourceRecord1.SetField("email_addr", "john.doe@example.com");
+            sourceRecord1.SetField("birth_dt", "1985-06-15");
+            sourceRecord1.SetField("account_balance", "1250.75");
+            sourceRecord1.SetField("status_cd", "A");
+            sourceRecord1.SetField("created_ts", "2023-01-15T10:30:00Z");
+            sourceRecords.Add(sourceRecord1);
+
+            // Source Record 2: Customer data with different values
+            var sourceRecord2 = new DataRecord();
+            sourceRecord2.SetField("cust_id", "67890");
+            sourceRecord2.SetField("first_nm", "Jane");
+            sourceRecord2.SetField("last_nm", "Smith");
+            sourceRecord2.SetField("email_addr", "jane.smith@example.com");
+            sourceRecord2.SetField("birth_dt", "1990-03-22");
+            sourceRecord2.SetField("account_balance", "2500.00");
+            sourceRecord2.SetField("status_cd", "I");
+            sourceRecord2.SetField("created_ts", "2023-02-20T14:45:00Z");
+            sourceRecords.Add(sourceRecord2);
+
+            _logger.LogInformation("Source Records: {RecordCount}", sourceRecords.Count);
+            foreach (var record in sourceRecords)
+            {
+                _logger.LogInformation("  Source Record {custId}: {firstName} {lastName}, balance={balance}, status={status}",
+                    record.GetField<string>("cust_id"),
+                    record.GetField<string>("first_nm"),
+                    record.GetField<string>("last_nm"),
+                    record.GetField<string>("account_balance"),
+                    record.GetField<string>("status_cd"));
+            }
+
+            // Create data mapper using builder pattern
+            var mapper = ETLFramework.Transformation.Mapping.DataMapperBuilder
+                .Create("customer_mapper", "Customer Data Mapper", "Maps legacy customer data to modern format",
+                    _serviceProvider.GetRequiredService<ILogger<ETLFramework.Transformation.Mapping.DataMapper>>())
+
+                // Direct field mappings
+                .MapField("cust_id", "customerId", isRequired: true)
+                .MapField("email_addr", "emailAddress", isRequired: true)
+
+                // Field mappings with transformations
+                .MapFieldWithTransform("first_nm", "firstName",
+                    ETLFramework.Transformation.Mapping.StringFieldTransformation.ToUpper())
+                .MapFieldWithTransform("last_nm", "lastName",
+                    ETLFramework.Transformation.Mapping.StringFieldTransformation.ToUpper())
+                .MapFieldWithTransform("account_balance", "balance",
+                    ETLFramework.Transformation.Mapping.NumericFieldTransformation.Round(2))
+                .MapFieldWithTransform("birth_dt", "birthDate",
+                    ETLFramework.Transformation.Mapping.DateTimeFieldTransformation.Format("yyyy-MM-dd"))
+                .MapFieldWithTransform("created_ts", "createdDate",
+                    ETLFramework.Transformation.Mapping.DateTimeFieldTransformation.Format("yyyy-MM-dd HH:mm:ss"))
+
+                // Constant mappings
+                .MapConstant("version", "2.0")
+                .MapConstant("source", "LegacySystem")
+
+                // Conditional mapping based on status code
+                .MapConditional("isActive",
+                    record => record.GetField<string>("status_cd") == "A",
+                    "status_cd", // This will be transformed to true/false
+                    "status_cd")
+
+                // Custom mapping for full name
+                .MapCustom("first_nm", "fullName", async (record, ct) =>
+                {
+                    var firstName = record.GetField<string>("first_nm");
+                    var lastName = record.GetField<string>("last_nm");
+                    return $"{firstName} {lastName}";
+                })
+
+                .Build();
+
+            // Validate mapper configuration
+            var validationResult = mapper.Validate();
+            _logger.LogInformation("Mapper Validation: {IsValid}", validationResult.IsValid);
+            if (!validationResult.IsValid)
+            {
+                foreach (var error in validationResult.Errors)
+                {
+                    _logger.LogWarning("  Validation Error: {Error}", error.Message);
+                }
+            }
+
+            // Apply mappings to source records
+            _logger.LogInformation("Applying data mappings to {RecordCount} records", sourceRecords.Count);
+
+            var mappedRecords = await mapper.MapBatchAsync(sourceRecords, cancellationToken);
+
+            // Display mapped results
+            _logger.LogInformation("Mapped Records: {RecordCount}", mappedRecords.Count());
+            foreach (var mappedRecord in mappedRecords)
+            {
+                _logger.LogInformation("  Mapped Record {customerId}:", mappedRecord.GetField<string>("customerId"));
+                _logger.LogInformation("    Full Name: {fullName}", mappedRecord.GetField<string>("fullName"));
+                _logger.LogInformation("    First Name: {firstName}", mappedRecord.GetField<string>("firstName"));
+                _logger.LogInformation("    Last Name: {lastName}", mappedRecord.GetField<string>("lastName"));
+                _logger.LogInformation("    Email: {emailAddress}", mappedRecord.GetField<string>("emailAddress"));
+                _logger.LogInformation("    Birth Date: {birthDate}", mappedRecord.GetField<string>("birthDate"));
+                _logger.LogInformation("    Balance: {balance}", mappedRecord.GetField<string>("balance"));
+                _logger.LogInformation("    Is Active: {isActive}", mappedRecord.GetField<string>("isActive"));
+                _logger.LogInformation("    Version: {version}", mappedRecord.GetField<string>("version"));
+                _logger.LogInformation("    Source: {source}", mappedRecord.GetField<string>("source"));
+                _logger.LogInformation("    Created Date: {createdDate}", mappedRecord.GetField<string>("createdDate"));
+            }
+
+            // Show mapper statistics
+            var stats = mapper.GetStatistics();
+            _logger.LogInformation("Data Mapper Statistics:");
+            _logger.LogInformation("  Total Mappings: {TotalMappings}", stats.TotalMappings);
+            _logger.LogInformation("  Required Mappings: {RequiredMappings}", stats.RequiredMappings);
+            _logger.LogInformation("  Optional Mappings: {OptionalMappings}", stats.OptionalMappings);
+            _logger.LogInformation("  Transformation Mappings: {TransformationMappings}", stats.TransformationMappings);
+            _logger.LogInformation("  Mappings by Type: {MappingsByType}",
+                string.Join(", ", stats.MappingsByType.Select(kvp => $"{kvp.Key}: {kvp.Value}")));
+
+            // Demonstrate schema-based mapping (conceptual)
+            _logger.LogInformation("Schema-Based Mapping Capabilities:");
+            _logger.LogInformation("  - Automatic field mapping by name similarity");
+            _logger.LogInformation("  - Type-safe transformations with validation");
+            _logger.LogInformation("  - Nested object mapping support");
+            _logger.LogInformation("  - Complex conditional logic");
+            _logger.LogInformation("  - Lookup table integration");
+            _logger.LogInformation("  - Custom transformation functions");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error in data mapping engine demo");
+        }
+    }
+
+    /// <summary>
+    /// Demonstrates performance optimization and monitoring capabilities.
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>A task representing the async operation</returns>
+    private async Task DemonstratePerformanceOptimizationAsync(CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("--- Performance Optimization Demo ---");
+
+        try
+        {
+            // Create performance monitor
+            var performanceMonitor = new ETLFramework.Transformation.Performance.TransformationPerformanceMonitor(
+                _serviceProvider.GetRequiredService<ILogger<ETLFramework.Transformation.Performance.TransformationPerformanceMonitor>>());
+
+            // Create performance optimizer
+            var performanceOptimizer = new ETLFramework.Transformation.Performance.PerformanceOptimizer(
+                performanceMonitor,
+                _serviceProvider.GetRequiredService<ILogger<ETLFramework.Transformation.Performance.PerformanceOptimizer>>());
+
+            // Simulate transformation execution with performance monitoring
+            const string transformationId = "demo_transformation";
+            const string transformationName = "Demo Performance Transformation";
+
+            _logger.LogInformation("Starting performance monitoring session for transformation: {TransformationName}", transformationName);
+
+            // Session 1: Simulate normal processing
+            using (var session1 = performanceMonitor.StartSession(transformationId, transformationName))
+            {
+                _logger.LogInformation("Session 1: Normal processing simulation");
+
+                // Simulate processing 1000 records
+                for (int i = 0; i < 1000; i++)
+                {
+                    // Simulate variable processing time (1-10ms)
+                    var processingTime = TimeSpan.FromMilliseconds(Random.Shared.Next(1, 11));
+                    await Task.Delay(processingTime, cancellationToken);
+
+                    // Record processing with 95% success rate
+                    var success = Random.Shared.NextDouble() > 0.05;
+                    session1.RecordProcessing(processingTime, success);
+
+                    if (!success)
+                    {
+                        session1.RecordError(new InvalidOperationException("Simulated processing error"));
+                    }
+
+                    // Record memory usage (simulate 1-5MB)
+                    session1.RecordMemoryUsage(Random.Shared.Next(1024 * 1024, 5 * 1024 * 1024));
+
+                    if (i % 100 == 0)
+                    {
+                        _logger.LogDebug("Processed {RecordCount} records", i + 1);
+                    }
+                }
+
+                _logger.LogInformation("Session 1 completed. Statistics: {Statistics}",
+                    System.Text.Json.JsonSerializer.Serialize(session1.GetStatistics(), new System.Text.Json.JsonSerializerOptions { WriteIndented = true }));
+            }
+
+            // Session 2: Simulate high-load processing
+            using (var session2 = performanceMonitor.StartSession(transformationId, transformationName))
+            {
+                _logger.LogInformation("Session 2: High-load processing simulation");
+
+                // Simulate processing 500 records with higher processing time
+                for (int i = 0; i < 500; i++)
+                {
+                    // Simulate higher processing time (10-50ms)
+                    var processingTime = TimeSpan.FromMilliseconds(Random.Shared.Next(10, 51));
+                    await Task.Delay(processingTime, cancellationToken);
+
+                    // Record processing with 90% success rate (more errors under load)
+                    var success = Random.Shared.NextDouble() > 0.10;
+                    session2.RecordProcessing(processingTime, success);
+
+                    if (!success)
+                    {
+                        session2.RecordError(new TimeoutException("Simulated timeout under high load"));
+                    }
+
+                    // Record higher memory usage (simulate 5-20MB)
+                    session2.RecordMemoryUsage(Random.Shared.Next(5 * 1024 * 1024, 20 * 1024 * 1024));
+
+                    if (i % 50 == 0)
+                    {
+                        _logger.LogDebug("High-load processed {RecordCount} records", i + 1);
+                    }
+                }
+
+                _logger.LogInformation("Session 2 completed. Statistics: {Statistics}",
+                    System.Text.Json.JsonSerializer.Serialize(session2.GetStatistics(), new System.Text.Json.JsonSerializerOptions { WriteIndented = true }));
+            }
+
+            // Get overall performance statistics
+            var overallStats = performanceMonitor.GetStatistics(transformationId);
+            if (overallStats != null)
+            {
+                _logger.LogInformation("Overall Performance Statistics:");
+                _logger.LogInformation("  Total Records Processed: {TotalRecords}", overallStats.TotalRecordsProcessed);
+                _logger.LogInformation("  Success Rate: {SuccessRate:F1}%", overallStats.SuccessRate);
+                _logger.LogInformation("  Error Rate: {ErrorRate:F1}%", overallStats.ErrorRate);
+                _logger.LogInformation("  Average Processing Time: {AvgTime:F1}ms", overallStats.AverageProcessingTime.TotalMilliseconds);
+                _logger.LogInformation("  Throughput: {Throughput:F1} records/sec", overallStats.ThroughputRecordsPerSecond);
+                _logger.LogInformation("  Peak Memory Usage: {PeakMemory:F1} MB", overallStats.PeakMemoryUsageBytes / (1024.0 * 1024.0));
+                _logger.LogInformation("  Total Sessions: {TotalSessions}", overallStats.TotalSessions);
+            }
+
+            // Perform optimization analysis
+            _logger.LogInformation("Performing optimization analysis...");
+            var analysis = performanceOptimizer.AnalyzePerformance(transformationId);
+
+            _logger.LogInformation("Optimization Analysis Results:");
+            _logger.LogInformation("  Overall Score: {Score}/100 (Grade: {Grade})", analysis.OverallScore, analysis.PerformanceGrade);
+            _logger.LogInformation("  Performance Acceptable: {IsAcceptable}", analysis.IsPerformanceAcceptable);
+
+            if (analysis.Issues.Any())
+            {
+                _logger.LogInformation("  Performance Issues ({IssueCount}):", analysis.Issues.Count);
+                foreach (var issue in analysis.Issues)
+                {
+                    _logger.LogInformation("    [{Severity}] {Category}: {Description}",
+                        issue.Severity, issue.Category, issue.Description);
+                    _logger.LogInformation("      Recommendation: {Recommendation}", issue.Recommendation);
+                }
+            }
+
+            // Get optimization recommendations
+            var recommendations = performanceMonitor.GetRecommendations(transformationId);
+            if (recommendations.Any())
+            {
+                _logger.LogInformation("  Performance Recommendations ({RecommendationCount}):", recommendations.Count());
+                foreach (var recommendation in recommendations)
+                {
+                    _logger.LogInformation("    [{Priority}] {Title}: {Description}",
+                        recommendation.Priority, recommendation.Title, recommendation.Description);
+                    _logger.LogInformation("      Impact: {Impact}, Effort: {Effort}",
+                        recommendation.EstimatedImpact, recommendation.ImplementationEffort);
+                }
+            }
+
+            // Get batch size recommendation
+            var optimalBatchSize = performanceOptimizer.GetOptimalBatchSize(transformationId, 1000);
+            _logger.LogInformation("  Optimal Batch Size: {BatchSize}", optimalBatchSize);
+
+            // Get parallel execution recommendation
+            var parallelRecommendation = performanceOptimizer.GetParallelExecutionRecommendation(transformationId);
+            _logger.LogInformation("  Parallel Execution Recommended: {IsRecommended}", parallelRecommendation.IsRecommended);
+            if (parallelRecommendation.IsRecommended)
+            {
+                _logger.LogInformation("    Degree of Parallelism: {DegreeOfParallelism}", parallelRecommendation.RecommendedDegreeOfParallelism);
+                _logger.LogInformation("    Estimated Speedup: {Speedup:F1}x", parallelRecommendation.EstimatedSpeedup);
+                _logger.LogInformation("    Reason: {Reason}", parallelRecommendation.Reason);
+            }
+            else
+            {
+                _logger.LogInformation("    Reason: {Reason}", parallelRecommendation.Reason);
+            }
+
+            // Get memory optimization recommendations
+            var memoryOptimizations = performanceOptimizer.GetMemoryOptimizations(transformationId);
+            if (memoryOptimizations.Any())
+            {
+                _logger.LogInformation("  Memory Optimization Recommendations ({Count}):", memoryOptimizations.Count());
+                foreach (var memOpt in memoryOptimizations)
+                {
+                    _logger.LogInformation("    {Type}: {Description}", memOpt.Type, memOpt.Description);
+                    _logger.LogInformation("      Savings: {Savings}, Complexity: {Complexity}",
+                        memOpt.EstimatedSavings, memOpt.ImplementationComplexity);
+                }
+            }
+
+            _logger.LogInformation("Performance optimization demonstration completed successfully!");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error in performance optimization demo");
         }
     }
 }
