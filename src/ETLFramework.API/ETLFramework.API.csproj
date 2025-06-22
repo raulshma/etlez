@@ -8,12 +8,19 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="9.0.5" />
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="7.2.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="9.0.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Authorization" Version="9.0.0" />
+    <PackageReference Include="FluentValidation.AspNetCore" Version="11.3.0" />
+    <PackageReference Include="AutoMapper.Extensions.Microsoft.DependencyInjection" Version="12.0.1" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\ETLFramework.Core\ETLFramework.Core.csproj" />
-    <ProjectReference Include="..\ETLFramework.Pipeline\ETLFramework.Pipeline.csproj" />
-    <ProjectReference Include="..\ETLFramework.Configuration\ETLFramework.Configuration.csproj" />
+    <ProjectReference Include="../ETLFramework.Core/ETLFramework.Core.csproj" />
+    <ProjectReference Include="../ETLFramework.Configuration/ETLFramework.Configuration.csproj" />
+    <ProjectReference Include="../ETLFramework.Connectors/ETLFramework.Connectors.csproj" />
+    <ProjectReference Include="../ETLFramework.Transformation/ETLFramework.Transformation.csproj" />
+    <ProjectReference Include="../ETLFramework.Pipeline/ETLFramework.Pipeline.csproj" />
   </ItemGroup>
 
 </Project>
