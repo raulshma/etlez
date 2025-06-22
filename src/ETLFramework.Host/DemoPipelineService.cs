@@ -5,6 +5,7 @@ using ETLFramework.Core.Models;
 using ETLFramework.Pipeline;
 using ETLFramework.Configuration.Models;
 using ETLFramework.Connectors;
+using ETLFramework.Connectors.Database;
 
 namespace ETLFramework.Host;
 
@@ -82,6 +83,9 @@ public class DemoPipelineService : BackgroundService
 
             // Demonstrate file connectors
             await DemonstrateFileConnectorsAsync(stoppingToken);
+
+            // Demonstrate database connectors
+            await DemonstrateDatabaseConnectorsAsync(stoppingToken);
 
             // Wait a bit before shutting down
             await Task.Delay(2000, stoppingToken);
@@ -344,6 +348,177 @@ public class DemoPipelineService : BackgroundService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error in XML connector demo");
+        }
+    }
+
+    /// <summary>
+    /// Demonstrates database connectors by creating and using SQLite databases.
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>A task representing the async operation</returns>
+    private async Task DemonstrateDatabaseConnectorsAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            _logger.LogInformation("=== Database Connectors Demonstration ===");
+
+            // Demonstrate SQLite connector (easiest to test without external dependencies)
+            await DemonstrateSqliteConnectorAsync(cancellationToken);
+
+            _logger.LogInformation("=== Database Connectors Demonstration Complete ===");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error demonstrating database connectors");
+        }
+    }
+
+    /// <summary>
+    /// Demonstrates SQLite connector functionality.
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>A task representing the async operation</returns>
+    private async Task DemonstrateSqliteConnectorAsync(CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("--- SQLite Connector Demo ---");
+
+        try
+        {
+            // Create in-memory SQLite connector configuration
+            var sqliteConfig = ConnectorFactory.CreateTestConfiguration(
+                "SQLite",
+                "Demo SQLite Database",
+                "Data Source=:memory:",
+                new Dictionary<string, object>
+                {
+                    ["createTableIfNotExists"] = true,
+                    ["tableName"] = "DemoTable"
+                });
+
+            // Create SQLite connector
+            var sqliteConnector = _connectorFactory.CreateSourceConnector<DataRecord>(sqliteConfig);
+
+            // Test connection
+            var testResult = await sqliteConnector.TestConnectionAsync(cancellationToken);
+            _logger.LogInformation("SQLite Connection Test: {IsSuccessful} - {Message}", testResult.IsSuccessful, testResult.Message);
+
+            if (testResult.IsSuccessful)
+            {
+                // Open connection and create sample data
+                await sqliteConnector.OpenAsync(cancellationToken);
+
+                // Cast to SQLite connector to access specific methods
+                if (sqliteConnector is SqliteConnector sqliteConn)
+                {
+                    // Create sample table with data
+                    await sqliteConn.CreateSampleTableAsync("DemoTable", cancellationToken);
+
+                    // Update configuration to point to the table
+                    sqliteConfig.SetConnectionProperty("tableName", "DemoTable");
+
+                    // Get record count
+                    var recordCount = await sqliteConnector.GetEstimatedRecordCountAsync(cancellationToken);
+                    _logger.LogInformation("SQLite Record Count: {RecordCount}", recordCount);
+
+                    // Get schema
+                    var schema = await sqliteConnector.GetSchemaAsync(cancellationToken);
+                    _logger.LogInformation("SQLite Schema: {FieldCount} fields detected", schema.Fields.Count);
+
+                    // Read records
+                    var readCount = 0;
+                    await foreach (var record in sqliteConnector.ReadAsync(cancellationToken))
+                    {
+                        readCount++;
+                        if (readCount <= 3) // Log first 3 records
+                        {
+                            _logger.LogInformation("SQLite Record {RecordNumber}: ID={Id}, Name={Name}, Value={Value}",
+                                record.RowNumber,
+                                record.Fields.TryGetValue("Id", out var id) ? id : null,
+                                record.Fields.TryGetValue("Name", out var name) ? name : null,
+                                record.Fields.TryGetValue("Value", out var value) ? value : null);
+                        }
+                    }
+                    _logger.LogInformation("SQLite Total Records Read: {RecordCount}", readCount);
+
+                    // Demonstrate write operations
+                    await DemonstrateSqliteWriteOperationsAsync(sqliteConn, cancellationToken);
+                }
+
+                await sqliteConnector.CloseAsync(cancellationToken);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error in SQLite connector demo");
+        }
+    }
+
+    /// <summary>
+    /// Demonstrates SQLite write operations.
+    /// </summary>
+    /// <param name="sqliteConnector">The SQLite connector</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>A task representing the async operation</returns>
+    private async Task DemonstrateSqliteWriteOperationsAsync(SqliteConnector sqliteConnector, CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("--- SQLite Write Operations Demo ---");
+
+        try
+        {
+            // Create destination connector for writing
+            var writeConfig = ConnectorFactory.CreateTestConfiguration(
+                "SQLite",
+                "Demo SQLite Write",
+                "Data Source=:memory:",
+                new Dictionary<string, object>
+                {
+                    ["createTableIfNotExists"] = true,
+                    ["tableName"] = "WriteTestTable"
+                });
+
+            var writeConnector = _connectorFactory.CreateDestinationConnector<DataRecord>(writeConfig);
+            await writeConnector.OpenAsync(cancellationToken);
+
+            // Create schema for the new table
+            var schema = new DataSchema
+            {
+                Name = "WriteTestTable"
+            };
+            schema.Fields.Add(new DataField { Name = "Id", DataType = typeof(int), IsRequired = true });
+            schema.Fields.Add(new DataField { Name = "Name", DataType = typeof(string), IsRequired = true });
+            schema.Fields.Add(new DataField { Name = "Description", DataType = typeof(string), IsRequired = false });
+            schema.Fields.Add(new DataField { Name = "CreatedDate", DataType = typeof(DateTime), IsRequired = true });
+
+            // Prepare the destination
+            await writeConnector.PrepareAsync(schema, cancellationToken);
+
+            // Create sample records to write
+            var recordsToWrite = new List<DataRecord>();
+            for (int i = 1; i <= 5; i++)
+            {
+                var record = new DataRecord
+                {
+                    RowNumber = i,
+                    Source = "Demo"
+                };
+                record.Fields["Id"] = i;
+                record.Fields["Name"] = $"Test Item {i}";
+                record.Fields["Description"] = $"This is test item number {i}";
+                record.Fields["CreatedDate"] = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss");
+
+                recordsToWrite.Add(record);
+            }
+
+            // Write records
+            var writeResult = await writeConnector.WriteBatchAsync(recordsToWrite, cancellationToken);
+            _logger.LogInformation("SQLite Write Result: Success={IsSuccessful}, Records={RecordsWritten}",
+                writeResult.IsSuccessful, writeResult.RecordsWritten);
+
+            await writeConnector.CloseAsync(cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error in SQLite write operations demo");
         }
     }
 }

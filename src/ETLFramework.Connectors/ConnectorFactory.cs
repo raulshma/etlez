@@ -2,6 +2,7 @@ using ETLFramework.Core.Interfaces;
 using ETLFramework.Core.Models;
 using ETLFramework.Core.Exceptions;
 using ETLFramework.Connectors.FileSystem;
+using ETLFramework.Connectors.Database;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -232,8 +233,18 @@ public class ConnectorFactory : IConnectorFactory
         RegisterConnector("JSON", config => new JsonConnector(config, 
             _serviceProvider.GetRequiredService<ILogger<JsonConnector>>()));
         
-        RegisterConnector("XML", config => new XmlConnector(config, 
+        RegisterConnector("XML", config => new XmlConnector(config,
             _serviceProvider.GetRequiredService<ILogger<XmlConnector>>()));
+
+        // Database Connectors
+        RegisterConnector("SQLite", config => new SqliteConnector(config,
+            _serviceProvider.GetRequiredService<ILogger<SqliteConnector>>()));
+
+        RegisterConnector("SqlServer", config => new SqlServerConnector(config,
+            _serviceProvider.GetRequiredService<ILogger<SqlServerConnector>>()));
+
+        RegisterConnector("MySQL", config => new MySqlDatabaseConnector(config,
+            _serviceProvider.GetRequiredService<ILogger<MySqlDatabaseConnector>>()));
 
         _logger.LogInformation("Registered {ConnectorCount} built-in connector types", _connectorCreators.Count);
     }

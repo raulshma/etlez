@@ -2,6 +2,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using ETLFramework.Core.Interfaces;
 using ETLFramework.Connectors.FileSystem;
+using ETLFramework.Connectors.Database;
 
 namespace ETLFramework.Connectors.Extensions;
 
@@ -25,6 +26,11 @@ public static class ServiceCollectionExtensions
         services.TryAddTransient<JsonConnector>();
         services.TryAddTransient<XmlConnector>();
 
+        // Register database connectors
+        services.TryAddTransient<SqliteConnector>();
+        services.TryAddTransient<SqlServerConnector>();
+        services.TryAddTransient<MySqlDatabaseConnector>();
+
         return services;
     }
 
@@ -38,6 +44,20 @@ public static class ServiceCollectionExtensions
         services.TryAddTransient<CsvConnector>();
         services.TryAddTransient<JsonConnector>();
         services.TryAddTransient<XmlConnector>();
+
+        return services;
+    }
+
+    /// <summary>
+    /// Adds database connectors to the service collection.
+    /// </summary>
+    /// <param name="services">The service collection</param>
+    /// <returns>The service collection for chaining</returns>
+    public static IServiceCollection AddDatabaseConnectors(this IServiceCollection services)
+    {
+        services.TryAddTransient<SqliteConnector>();
+        services.TryAddTransient<SqlServerConnector>();
+        services.TryAddTransient<MySqlDatabaseConnector>();
 
         return services;
     }
