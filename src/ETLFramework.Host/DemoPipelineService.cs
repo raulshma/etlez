@@ -87,6 +87,12 @@ public class DemoPipelineService : BackgroundService
             // Demonstrate database connectors
             await DemonstrateDatabaseConnectorsAsync(stoppingToken);
 
+            // Demonstrate cloud storage connectors
+            await DemonstrateCloudStorageConnectorsAsync(stoppingToken);
+
+            // Demonstrate enhanced connector factory system
+            await DemonstrateConnectorFactorySystemAsync(stoppingToken);
+
             // Wait a bit before shutting down
             await Task.Delay(2000, stoppingToken);
 
@@ -519,6 +525,346 @@ public class DemoPipelineService : BackgroundService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error in SQLite write operations demo");
+        }
+    }
+
+    /// <summary>
+    /// Demonstrates cloud storage connectors by showing their configuration and capabilities.
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>A task representing the async operation</returns>
+    private async Task DemonstrateCloudStorageConnectorsAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            _logger.LogInformation("=== Cloud Storage Connectors Demonstration ===");
+
+            // Demonstrate Azure Blob Storage connector configuration
+            await DemonstrateAzureBlobConnectorAsync(cancellationToken);
+
+            // Demonstrate AWS S3 connector configuration
+            await DemonstrateAwsS3ConnectorAsync(cancellationToken);
+
+            _logger.LogInformation("=== Cloud Storage Connectors Demonstration Complete ===");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error demonstrating cloud storage connectors");
+        }
+    }
+
+    /// <summary>
+    /// Demonstrates Azure Blob Storage connector configuration and capabilities.
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>A task representing the async operation</returns>
+    private async Task DemonstrateAzureBlobConnectorAsync(CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("--- Azure Blob Storage Connector Demo ---");
+
+        try
+        {
+            // Create Azure Blob Storage connector configuration (using Azurite emulator connection string)
+            var azureBlobConfig = ConnectorFactory.CreateTestConfiguration(
+                "AzureBlob",
+                "Demo Azure Blob Storage",
+                "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://127.0.0.1:10000/devstoreaccount1;",
+                new Dictionary<string, object>
+                {
+                    ["container"] = "demo-container",
+                    ["createContainerIfNotExists"] = true,
+                    ["filePattern"] = "*.csv"
+                });
+
+            // Create Azure Blob Storage connector
+            var azureBlobConnector = _connectorFactory.CreateSourceConnector<DataRecord>(azureBlobConfig);
+
+            // Test connection (this will fail if Azurite is not running, which is expected)
+            var testResult = await azureBlobConnector.TestConnectionAsync(cancellationToken);
+            _logger.LogInformation("Azure Blob Storage Connection Test: {IsSuccessful} - {Message}", testResult.IsSuccessful, testResult.Message);
+
+            if (!testResult.IsSuccessful)
+            {
+                _logger.LogInformation("Azure Blob Storage connector configured but Azurite emulator not available");
+                _logger.LogInformation("To test Azure Blob Storage: Install Azurite and run 'azurite --silent --location c:\\azurite --debug c:\\azurite\\debug.log'");
+            }
+
+            // Show connector metadata
+            var metadata = await azureBlobConnector.GetMetadataAsync(cancellationToken);
+            _logger.LogInformation("Azure Blob Storage Connector Version: {Version}", metadata.Version);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Azure Blob Storage connector demo failed (expected if Azurite not running)");
+        }
+    }
+
+    /// <summary>
+    /// Demonstrates AWS S3 connector configuration and capabilities.
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>A task representing the async operation</returns>
+    private async Task DemonstrateAwsS3ConnectorAsync(CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("--- AWS S3 Connector Demo ---");
+
+        try
+        {
+            // Create AWS S3 connector configuration (using default credential chain)
+            var awsS3Config = ConnectorFactory.CreateTestConfiguration(
+                "AwsS3",
+                "Demo AWS S3",
+                "Region=us-east-1",
+                new Dictionary<string, object>
+                {
+                    ["bucket"] = "demo-bucket",
+                    ["createContainerIfNotExists"] = true,
+                    ["prefix"] = "data/",
+                    ["filePattern"] = "*.json"
+                });
+
+            // Create AWS S3 connector
+            var awsS3Connector = _connectorFactory.CreateSourceConnector<DataRecord>(awsS3Config);
+
+            // Test connection (this will fail if AWS credentials are not configured, which is expected)
+            var testResult = await awsS3Connector.TestConnectionAsync(cancellationToken);
+            _logger.LogInformation("AWS S3 Connection Test: {IsSuccessful} - {Message}", testResult.IsSuccessful, testResult.Message);
+
+            if (!testResult.IsSuccessful)
+            {
+                _logger.LogInformation("AWS S3 connector configured but AWS credentials not available");
+                _logger.LogInformation("To test AWS S3: Configure AWS credentials using AWS CLI, environment variables, or IAM roles");
+            }
+
+            // Show connector metadata
+            var metadata = await awsS3Connector.GetMetadataAsync(cancellationToken);
+            _logger.LogInformation("AWS S3 Connector Version: {Version}", metadata.Version);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "AWS S3 connector demo failed (expected if AWS credentials not configured)");
+        }
+    }
+
+    /// <summary>
+    /// Demonstrates the enhanced connector factory system capabilities.
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>A task representing the async operation</returns>
+    private async Task DemonstrateConnectorFactorySystemAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            _logger.LogInformation("=== Enhanced Connector Factory System Demonstration ===");
+
+            // Demonstrate connector registry
+            await DemonstrateConnectorRegistryAsync(cancellationToken);
+
+            // Demonstrate connector templates
+            await DemonstrateConnectorTemplatesAsync(cancellationToken);
+
+            // Demonstrate health checking
+            await DemonstrateConnectorHealthCheckingAsync(cancellationToken);
+
+            _logger.LogInformation("=== Enhanced Connector Factory System Demonstration Complete ===");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error demonstrating enhanced connector factory system");
+        }
+    }
+
+    /// <summary>
+    /// Demonstrates the connector registry capabilities.
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>A task representing the async operation</returns>
+    private async Task DemonstrateConnectorRegistryAsync(CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("--- Connector Registry Demo ---");
+
+        try
+        {
+            if (_connectorFactory is not ConnectorFactory factory)
+            {
+                _logger.LogWarning("Connector factory is not the enhanced ConnectorFactory type");
+                return;
+            }
+
+            var registry = factory.Registry;
+
+            // Show registry statistics
+            var stats = registry.GetStats();
+            _logger.LogInformation("Registry Statistics:");
+            _logger.LogInformation("  Total Connectors: {TotalConnectors}", stats.TotalConnectors);
+            _logger.LogInformation("  Available Connectors: {AvailableConnectors}", stats.AvailableConnectors);
+            _logger.LogInformation("  Categories: {CategoriesCount}", stats.CategoriesCount);
+
+            foreach (var category in stats.Categories)
+            {
+                _logger.LogInformation("    {Category}: {Count} connectors", category.Key, category.Value);
+            }
+
+            // Demonstrate connector discovery
+            _logger.LogInformation("Available Connector Types:");
+            foreach (var connectorType in _connectorFactory.GetSupportedConnectorTypes())
+            {
+                var descriptor = registry.GetDescriptor(connectorType);
+                if (descriptor != null)
+                {
+                    _logger.LogInformation("  {ConnectorType}: {DisplayName} - {Description}",
+                        connectorType, descriptor.DisplayName, descriptor.Description);
+                }
+            }
+
+            // Demonstrate searching
+            var fileConnectors = registry.GetByCategory("File System");
+            _logger.LogInformation("File System Connectors: {Count}", fileConnectors.Count());
+
+            var readConnectors = registry.GetByOperation(ETLFramework.Connectors.Factory.ConnectorOperation.Read);
+            _logger.LogInformation("Connectors supporting Read operation: {Count}", readConnectors.Count());
+
+            await Task.CompletedTask;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error in connector registry demo");
+        }
+    }
+
+    /// <summary>
+    /// Demonstrates connector templates.
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>A task representing the async operation</returns>
+    private async Task DemonstrateConnectorTemplatesAsync(CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("--- Connector Templates Demo ---");
+
+        try
+        {
+            if (_connectorFactory is not ConnectorFactory factory)
+            {
+                _logger.LogWarning("Connector factory is not the enhanced ConnectorFactory type");
+                return;
+            }
+
+            // Show available templates
+            var templates = factory.GetAvailableTemplates();
+            _logger.LogInformation("Available Templates: {Count}", templates.Count);
+
+            foreach (var template in templates.Take(3)) // Show first 3 templates
+            {
+                _logger.LogInformation("  {TemplateName} ({Category}): {Description}",
+                    template.Name, template.Category, template.Description);
+
+                _logger.LogInformation("    Parameters: {ParameterCount}", template.Parameters.Count);
+                foreach (var param in template.Parameters.Take(2)) // Show first 2 parameters
+                {
+                    _logger.LogInformation("      {ParameterName} ({Type}): {Description}",
+                        param.Name, param.Type.Name, param.Description);
+                }
+            }
+
+            // Demonstrate template usage
+            var csvTemplate = factory.CreateFromTemplate("csv", new Dictionary<string, object>
+            {
+                ["filePath"] = "demo.csv",
+                ["hasHeaders"] = true,
+                ["delimiter"] = ","
+            });
+
+            if (csvTemplate != null)
+            {
+                _logger.LogInformation("Created CSV connector from template: {ConnectorName}", csvTemplate.Name);
+            }
+
+            await Task.CompletedTask;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error in connector templates demo");
+        }
+    }
+
+    /// <summary>
+    /// Demonstrates connector health checking.
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>A task representing the async operation</returns>
+    private async Task DemonstrateConnectorHealthCheckingAsync(CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("--- Connector Health Checking Demo ---");
+
+        try
+        {
+            // Create a test connector for health checking
+            var sqliteConfig = ConnectorFactory.CreateTestConfiguration(
+                "SQLite",
+                "Health Check Test",
+                "Data Source=:memory:",
+                new Dictionary<string, object>
+                {
+                    ["tableName"] = "HealthTest"
+                });
+
+            var testConnector = _connectorFactory.CreateSourceConnector<DataRecord>(sqliteConfig);
+
+            if (_connectorFactory is not ConnectorFactory healthFactory)
+            {
+                _logger.LogWarning("Connector factory is not the enhanced ConnectorFactory type");
+                return;
+            }
+
+            // Perform individual health check
+            var healthChecker = healthFactory.HealthChecker;
+            var healthResult = await healthChecker.CheckHealthAsync(testConnector, cancellationToken);
+
+            _logger.LogInformation("Health Check Results for {ConnectorName}:", healthResult.ConnectorName);
+            _logger.LogInformation("  Overall Status: {Status}", healthResult.OverallStatus);
+            _logger.LogInformation("  Duration: {Duration}ms", healthResult.Duration.TotalMilliseconds);
+
+            if (healthResult.ConnectivityCheck != null)
+            {
+                _logger.LogInformation("  Connectivity: {Status} - {Message}",
+                    healthResult.ConnectivityCheck.Status, healthResult.ConnectivityCheck.Message);
+            }
+
+            if (healthResult.ConfigurationCheck != null)
+            {
+                _logger.LogInformation("  Configuration: {Status} - {Message}",
+                    healthResult.ConfigurationCheck.Status, healthResult.ConfigurationCheck.Message);
+            }
+
+            if (healthResult.MetadataCheck != null)
+            {
+                _logger.LogInformation("  Metadata: {Status} - {Message}",
+                    healthResult.MetadataCheck.Status, healthResult.MetadataCheck.Message);
+            }
+
+            if (healthResult.Errors.Count > 0)
+            {
+                _logger.LogInformation("  Errors: {ErrorCount}", healthResult.Errors.Count);
+                foreach (var error in healthResult.Errors.Take(2))
+                {
+                    _logger.LogInformation("    - {Error}", error);
+                }
+            }
+
+            if (healthResult.Warnings.Count > 0)
+            {
+                _logger.LogInformation("  Warnings: {WarningCount}", healthResult.Warnings.Count);
+                foreach (var warning in healthResult.Warnings.Take(2))
+                {
+                    _logger.LogInformation("    - {Warning}", warning);
+                }
+            }
+
+            await testConnector.CloseAsync(cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error in connector health checking demo");
         }
     }
 }

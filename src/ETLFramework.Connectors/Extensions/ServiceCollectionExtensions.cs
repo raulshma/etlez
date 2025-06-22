@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using ETLFramework.Core.Interfaces;
 using ETLFramework.Connectors.FileSystem;
 using ETLFramework.Connectors.Database;
+using ETLFramework.Connectors.CloudStorage;
 
 namespace ETLFramework.Connectors.Extensions;
 
@@ -31,6 +32,10 @@ public static class ServiceCollectionExtensions
         services.TryAddTransient<SqlServerConnector>();
         services.TryAddTransient<MySqlDatabaseConnector>();
 
+        // Register cloud storage connectors
+        services.TryAddTransient<AzureBlobConnector>();
+        services.TryAddTransient<AwsS3Connector>();
+
         return services;
     }
 
@@ -58,6 +63,19 @@ public static class ServiceCollectionExtensions
         services.TryAddTransient<SqliteConnector>();
         services.TryAddTransient<SqlServerConnector>();
         services.TryAddTransient<MySqlDatabaseConnector>();
+
+        return services;
+    }
+
+    /// <summary>
+    /// Adds cloud storage connectors to the service collection.
+    /// </summary>
+    /// <param name="services">The service collection</param>
+    /// <returns>The service collection for chaining</returns>
+    public static IServiceCollection AddCloudStorageConnectors(this IServiceCollection services)
+    {
+        services.TryAddTransient<AzureBlobConnector>();
+        services.TryAddTransient<AwsS3Connector>();
 
         return services;
     }

@@ -3,6 +3,8 @@ using ETLFramework.Core.Models;
 using ETLFramework.Core.Exceptions;
 using ETLFramework.Connectors.FileSystem;
 using ETLFramework.Connectors.Database;
+using ETLFramework.Connectors.CloudStorage;
+using ETLFramework.Connectors.Factory;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -16,6 +18,8 @@ public class ConnectorFactory : IConnectorFactory
     private readonly IServiceProvider _serviceProvider;
     private readonly ILogger<ConnectorFactory> _logger;
     private readonly Dictionary<string, Func<IConnectorConfiguration, IConnector>> _connectorCreators;
+    private readonly ConnectorRegistry _registry;
+    private readonly ConnectorHealthChecker _healthChecker;
 
     /// <summary>
     /// Initializes a new instance of the ConnectorFactory class.
@@ -27,8 +31,11 @@ public class ConnectorFactory : IConnectorFactory
         _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _connectorCreators = new Dictionary<string, Func<IConnectorConfiguration, IConnector>>(StringComparer.OrdinalIgnoreCase);
+        _registry = new ConnectorRegistry(_serviceProvider.GetRequiredService<ILogger<ConnectorRegistry>>());
+        _healthChecker = new ConnectorHealthChecker(_serviceProvider.GetRequiredService<ILogger<ConnectorHealthChecker>>());
 
         RegisterBuiltInConnectors();
+        RegisterBuiltInDescriptors();
     }
 
     /// <summary>
@@ -219,7 +226,112 @@ public class ConnectorFactory : IConnectorFactory
         return _connectorCreators.Keys.ToList();
     }
 
+    /// <summary>
+    /// Gets the number of registered connector types.
+    /// </summary>
+    public int RegisteredConnectorCount => _connectorCreators.Count;
 
+    /// <summary>
+    /// Gets the connector registry.
+    /// </summary>
+    public ConnectorRegistry Registry => _registry;
+
+    /// <summary>
+    /// Gets the connector health checker.
+    /// </summary>
+    public ConnectorHealthChecker HealthChecker => _healthChecker;
+
+    /// <summary>
+    /// Gets all available connector templates.
+    /// </summary>
+    /// <returns>A list of available templates</returns>
+    public List<TemplateInfo> GetAvailableTemplates()
+    {
+        return ConnectorTemplate.GetAvailableTemplates();
+    }
+
+    /// <summary>
+    /// Creates a connector configuration from a template.
+    /// </summary>
+    /// <param name="templateName">The template name</param>
+    /// <param name="parameters">The template parameters</param>
+    /// <returns>A connector configuration</returns>
+    public IConnectorConfiguration? CreateFromTemplate(string templateName, Dictionary<string, object> parameters)
+    {
+        return templateName.ToLowerInvariant() switch
+        {
+            "csv" => ConnectorTemplate.CreateCsvTemplate(
+                parameters.GetValueOrDefault("filePath")?.ToString() ?? "",
+                parameters.GetValueOrDefault("hasHeaders") as bool? ?? true,
+                parameters.GetValueOrDefault("delimiter")?.ToString() ?? ","),
+
+            "json" => ConnectorTemplate.CreateJsonTemplate(
+                parameters.GetValueOrDefault("filePath")?.ToString() ?? "",
+                parameters.GetValueOrDefault("format")?.ToString() ?? "Array"),
+
+            "xml" => ConnectorTemplate.CreateXmlTemplate(
+                parameters.GetValueOrDefault("filePath")?.ToString() ?? "",
+                parameters.GetValueOrDefault("rootElement")?.ToString() ?? "Root",
+                parameters.GetValueOrDefault("recordElement")?.ToString() ?? "Record"),
+
+            "sqlite" => ConnectorTemplate.CreateSqliteTemplate(
+                parameters.GetValueOrDefault("databasePath")?.ToString() ?? "",
+                parameters.GetValueOrDefault("tableName")?.ToString() ?? ""),
+
+            "sqlserver" => ConnectorTemplate.CreateSqlServerTemplate(
+                parameters.GetValueOrDefault("server")?.ToString() ?? "",
+                parameters.GetValueOrDefault("database")?.ToString() ?? "",
+                parameters.GetValueOrDefault("tableName")?.ToString() ?? "",
+                parameters.GetValueOrDefault("integratedSecurity") as bool? ?? true),
+
+            "mysql" => ConnectorTemplate.CreateMySqlTemplate(
+                parameters.GetValueOrDefault("server")?.ToString() ?? "",
+                parameters.GetValueOrDefault("database")?.ToString() ?? "",
+                parameters.GetValueOrDefault("username")?.ToString() ?? "",
+                parameters.GetValueOrDefault("password")?.ToString() ?? "",
+                parameters.GetValueOrDefault("tableName")?.ToString() ?? ""),
+
+            "azureblob" => ConnectorTemplate.CreateAzureBlobTemplate(
+                parameters.GetValueOrDefault("connectionString")?.ToString() ?? "",
+                parameters.GetValueOrDefault("containerName")?.ToString() ?? "",
+                parameters.GetValueOrDefault("prefix")?.ToString()),
+
+            "awss3" => ConnectorTemplate.CreateAwsS3Template(
+                parameters.GetValueOrDefault("accessKey")?.ToString() ?? "",
+                parameters.GetValueOrDefault("secretKey")?.ToString() ?? "",
+                parameters.GetValueOrDefault("region")?.ToString() ?? "",
+                parameters.GetValueOrDefault("bucketName")?.ToString() ?? "",
+                parameters.GetValueOrDefault("prefix")?.ToString()),
+
+            _ => null
+        };
+    }
+
+    /// <summary>
+    /// Performs a health check on all registered connectors.
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>A health check summary</returns>
+    public async Task<ConnectorHealthSummary> CheckAllConnectorsHealthAsync(CancellationToken cancellationToken = default)
+    {
+        var connectors = new List<IConnector>();
+
+        foreach (var connectorType in GetSupportedConnectorTypes())
+        {
+            try
+            {
+                var config = CreateTestConfiguration(connectorType, $"Health Check {connectorType}", "test");
+                var connector = CreateConnector(config);
+                connectors.Add(connector);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Could not create connector for health check: {ConnectorType}", connectorType);
+            }
+        }
+
+        return await _healthChecker.CheckMultipleAsync(connectors, cancellationToken);
+    }
 
     /// <summary>
     /// Registers built-in connector types.
@@ -246,7 +358,158 @@ public class ConnectorFactory : IConnectorFactory
         RegisterConnector("MySQL", config => new MySqlDatabaseConnector(config,
             _serviceProvider.GetRequiredService<ILogger<MySqlDatabaseConnector>>()));
 
+        // Cloud Storage Connectors
+        RegisterConnector("AzureBlob", config => new AzureBlobConnector(config,
+            _serviceProvider.GetRequiredService<ILogger<AzureBlobConnector>>()));
+
+        RegisterConnector("AwsS3", config => new AwsS3Connector(config,
+            _serviceProvider.GetRequiredService<ILogger<AwsS3Connector>>()));
+
         _logger.LogInformation("Registered {ConnectorCount} built-in connector types", _connectorCreators.Count);
+    }
+
+    /// <summary>
+    /// Registers built-in connector descriptors.
+    /// </summary>
+    private void RegisterBuiltInDescriptors()
+    {
+        // CSV Connector Descriptor
+        var csvDescriptor = new ConnectorDescriptor
+        {
+            ConnectorType = "CSV",
+            DisplayName = "CSV File Connector",
+            Description = "Reads and writes comma-separated values files with configurable delimiters and encoding",
+            Category = "File System",
+            Author = "ETL Framework",
+            Version = "1.0.0"
+        };
+        csvDescriptor.SupportedOperations.AddRange(new[] { ConnectorOperation.Read, ConnectorOperation.Write, ConnectorOperation.TestConnection, ConnectorOperation.DiscoverSchema });
+        csvDescriptor.SupportedFormats.Add("CSV");
+        csvDescriptor.Tags.AddRange(new[] { "file", "text", "structured" });
+        csvDescriptor.RequiredProperties.Add("filePath");
+        csvDescriptor.OptionalProperties.AddRange(new[] { "hasHeaders", "delimiter", "encoding" });
+        _registry.Register(csvDescriptor);
+
+        // JSON Connector Descriptor
+        var jsonDescriptor = new ConnectorDescriptor
+        {
+            ConnectorType = "JSON",
+            DisplayName = "JSON File Connector",
+            Description = "Reads and writes JavaScript Object Notation files with support for arrays and JSON Lines format",
+            Category = "File System",
+            Author = "ETL Framework",
+            Version = "1.0.0"
+        };
+        jsonDescriptor.SupportedOperations.AddRange(new[] { ConnectorOperation.Read, ConnectorOperation.Write, ConnectorOperation.TestConnection, ConnectorOperation.DiscoverSchema });
+        jsonDescriptor.SupportedFormats.Add("JSON");
+        jsonDescriptor.Tags.AddRange(new[] { "file", "json", "structured" });
+        jsonDescriptor.RequiredProperties.Add("filePath");
+        jsonDescriptor.OptionalProperties.AddRange(new[] { "format", "encoding", "indented" });
+        _registry.Register(jsonDescriptor);
+
+        // XML Connector Descriptor
+        var xmlDescriptor = new ConnectorDescriptor
+        {
+            ConnectorType = "XML",
+            DisplayName = "XML File Connector",
+            Description = "Reads and writes Extensible Markup Language files with configurable element mapping",
+            Category = "File System",
+            Author = "ETL Framework",
+            Version = "1.0.0"
+        };
+        xmlDescriptor.SupportedOperations.AddRange(new[] { ConnectorOperation.Read, ConnectorOperation.Write, ConnectorOperation.TestConnection, ConnectorOperation.DiscoverSchema });
+        xmlDescriptor.SupportedFormats.Add("XML");
+        xmlDescriptor.Tags.AddRange(new[] { "file", "xml", "structured" });
+        xmlDescriptor.RequiredProperties.Add("filePath");
+        xmlDescriptor.OptionalProperties.AddRange(new[] { "rootElement", "recordElement", "encoding" });
+        _registry.Register(xmlDescriptor);
+
+        // SQLite Connector Descriptor
+        var sqliteDescriptor = new ConnectorDescriptor
+        {
+            ConnectorType = "SQLite",
+            DisplayName = "SQLite Database Connector",
+            Description = "Lightweight database connector for SQLite with in-memory and file-based support",
+            Category = "Database",
+            Author = "ETL Framework",
+            Version = "1.0.0"
+        };
+        sqliteDescriptor.SupportedOperations.AddRange(new[] { ConnectorOperation.Read, ConnectorOperation.Write, ConnectorOperation.TestConnection, ConnectorOperation.DiscoverSchema, ConnectorOperation.Transactions });
+        sqliteDescriptor.SupportedFormats.Add("SQL");
+        sqliteDescriptor.Tags.AddRange(new[] { "database", "sqlite", "embedded" });
+        sqliteDescriptor.RequiredProperties.AddRange(new[] { "connectionString", "tableName" });
+        sqliteDescriptor.OptionalProperties.AddRange(new[] { "createTableIfNotExists", "commandTimeout" });
+        _registry.Register(sqliteDescriptor);
+
+        // SQL Server Connector Descriptor
+        var sqlServerDescriptor = new ConnectorDescriptor
+        {
+            ConnectorType = "SqlServer",
+            DisplayName = "SQL Server Database Connector",
+            Description = "Enterprise database connector for Microsoft SQL Server with bulk operations and connection pooling",
+            Category = "Database",
+            Author = "ETL Framework",
+            Version = "1.0.0"
+        };
+        sqlServerDescriptor.SupportedOperations.AddRange(new[] { ConnectorOperation.Read, ConnectorOperation.Write, ConnectorOperation.TestConnection, ConnectorOperation.DiscoverSchema, ConnectorOperation.Transactions, ConnectorOperation.BulkOperations });
+        sqlServerDescriptor.SupportedFormats.Add("SQL");
+        sqlServerDescriptor.Tags.AddRange(new[] { "database", "sqlserver", "enterprise" });
+        sqlServerDescriptor.RequiredProperties.AddRange(new[] { "connectionString", "tableName" });
+        sqlServerDescriptor.OptionalProperties.AddRange(new[] { "createTableIfNotExists", "commandTimeout", "useConnectionPooling", "maxPoolSize" });
+        _registry.Register(sqlServerDescriptor);
+
+        // MySQL Connector Descriptor
+        var mysqlDescriptor = new ConnectorDescriptor
+        {
+            ConnectorType = "MySQL",
+            DisplayName = "MySQL Database Connector",
+            Description = "Open-source database connector for MySQL with optimized bulk operations",
+            Category = "Database",
+            Author = "ETL Framework",
+            Version = "1.0.0"
+        };
+        mysqlDescriptor.SupportedOperations.AddRange(new[] { ConnectorOperation.Read, ConnectorOperation.Write, ConnectorOperation.TestConnection, ConnectorOperation.DiscoverSchema, ConnectorOperation.Transactions, ConnectorOperation.BulkOperations });
+        mysqlDescriptor.SupportedFormats.Add("SQL");
+        mysqlDescriptor.Tags.AddRange(new[] { "database", "mysql", "opensource" });
+        mysqlDescriptor.RequiredProperties.AddRange(new[] { "connectionString", "tableName" });
+        mysqlDescriptor.OptionalProperties.AddRange(new[] { "createTableIfNotExists", "commandTimeout", "useConnectionPooling", "useSSL" });
+        _registry.Register(mysqlDescriptor);
+
+        // Azure Blob Connector Descriptor
+        var azureBlobDescriptor = new ConnectorDescriptor
+        {
+            ConnectorType = "AzureBlob",
+            DisplayName = "Azure Blob Storage Connector",
+            Description = "Cloud storage connector for Azure Blob Storage with streaming and metadata support",
+            Category = "Cloud Storage",
+            Author = "ETL Framework",
+            Version = "1.0.0"
+        };
+        azureBlobDescriptor.SupportedOperations.AddRange(new[] { ConnectorOperation.Read, ConnectorOperation.Write, ConnectorOperation.TestConnection, ConnectorOperation.Streaming });
+        azureBlobDescriptor.SupportedFormats.AddRange(new[] { "CSV", "JSON", "XML", "Binary" });
+        azureBlobDescriptor.Tags.AddRange(new[] { "cloud", "azure", "storage", "blob" });
+        azureBlobDescriptor.RequiredProperties.AddRange(new[] { "connectionString", "container" });
+        azureBlobDescriptor.OptionalProperties.AddRange(new[] { "prefix", "filePattern", "createContainerIfNotExists", "maxConcurrency" });
+        _registry.Register(azureBlobDescriptor);
+
+        // AWS S3 Connector Descriptor
+        var awsS3Descriptor = new ConnectorDescriptor
+        {
+            ConnectorType = "AwsS3",
+            DisplayName = "AWS S3 Connector",
+            Description = "Cloud storage connector for Amazon S3 with credential management and bulk operations",
+            Category = "Cloud Storage",
+            Author = "ETL Framework",
+            Version = "1.0.0"
+        };
+        awsS3Descriptor.SupportedOperations.AddRange(new[] { ConnectorOperation.Read, ConnectorOperation.Write, ConnectorOperation.TestConnection, ConnectorOperation.Streaming });
+        awsS3Descriptor.SupportedFormats.AddRange(new[] { "CSV", "JSON", "XML", "Binary" });
+        awsS3Descriptor.Tags.AddRange(new[] { "cloud", "aws", "storage", "s3" });
+        awsS3Descriptor.RequiredProperties.AddRange(new[] { "bucket" });
+        awsS3Descriptor.OptionalProperties.AddRange(new[] { "accessKey", "secretKey", "region", "prefix", "filePattern", "createContainerIfNotExists", "maxConcurrency" });
+        _registry.Register(awsS3Descriptor);
+
+        _logger.LogInformation("Registered {DescriptorCount} built-in connector descriptors", _registry.Count);
     }
 
     /// <summary>
