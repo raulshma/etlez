@@ -1,0 +1,42 @@
+[
+  {
+    "product_id": 1,
+    "name": "Laptop Computer",
+    "category": "Electronics",
+    "price": 999.99,
+    "in_stock": true,
+    "description": "High-performance laptop for business and gaming"
+  },
+  {
+    "product_id": 2,
+    "name": "Wireless Mouse",
+    "category": "Electronics",
+    "price": 29.99,
+    "in_stock": true,
+    "description": "Ergonomic wireless mouse with precision tracking"
+  },
+  {
+    "product_id": 3,
+    "name": "Office Chair",
+    "category": "Furniture",
+    "price": 199.99,
+    "in_stock": false,
+    "description": "Comfortable ergonomic office chair with lumbar support"
+  },
+  {
+    "product_id": 4,
+    "name": "Desk Lamp",
+    "category": "Furniture",
+    "price": 49.99,
+    "in_stock": true,
+    "description": "LED desk lamp with adjustable brightness"
+  },
+  {
+    "product_id": 5,
+    "name": "Coffee Mug",
+    "category": "Kitchen",
+    "price": 12.99,
+    "in_stock": true,
+    "description": "Ceramic coffee mug with company logo"
+  }
+]

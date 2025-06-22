@@ -121,4 +121,20 @@ public class ConnectorException : ETLFrameworkException
             ErrorCode = "CONFIG_ERROR"
         };
     }
+
+    /// <summary>
+    /// Creates a connector exception for factory failures.
+    /// </summary>
+    /// <param name="message">The error message</param>
+    /// <param name="connectorType">The connector type</param>
+    /// <returns>A new ConnectorException instance</returns>
+    public static ConnectorException CreateFactoryFailure(string message, string connectorType)
+    {
+        return new ConnectorException(message)
+        {
+            ConnectorType = connectorType,
+            Operation = "Create",
+            ErrorCode = "FACTORY_ERROR"
+        };
+    }
 }

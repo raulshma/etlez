@@ -1,0 +1,11 @@
+customer_id,first_name,last_name,email_address,phone_number,city,country
+1,John,Doe,john.doe@email.com,+1-555-0101,New York,USA
+2,Jane,Smith,jane.smith@email.com,+1-555-0102,Los Angeles,USA
+3,Bob,Johnson,bob.johnson@email.com,+1-555-0103,Chicago,USA
+4,Alice,Williams,alice.williams@email.com,+1-555-0104,Houston,USA
+5,Charlie,Brown,charlie.brown@email.com,+1-555-0105,Phoenix,USA
+6,Diana,Davis,diana.davis@email.com,+1-555-0106,Philadelphia,USA
+7,Eve,Miller,eve.miller@email.com,+1-555-0107,San Antonio,USA
+8,Frank,Wilson,frank.wilson@email.com,+1-555-0108,San Diego,USA
+9,Grace,Moore,grace.moore@email.com,+1-555-0109,Dallas,USA
+10,Henry,Taylor,henry.taylor@email.com,+1-555-0110,San Jose,USA

@@ -1,8 +1,10 @@
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using ETLFramework.Core.Interfaces;
+using ETLFramework.Core.Models;
 using ETLFramework.Pipeline;
 using ETLFramework.Configuration.Models;
+using ETLFramework.Connectors;
 
 namespace ETLFramework.Host;
 
@@ -14,6 +16,7 @@ public class DemoPipelineService : BackgroundService
     private readonly ILogger<DemoPipelineService> _logger;
     private readonly IPipelineOrchestrator _orchestrator;
     private readonly PipelineBuilder _pipelineBuilder;
+    private readonly IConnectorFactory _connectorFactory;
 
     /// <summary>
     /// Initializes a new instance of the DemoPipelineService class.
@@ -21,14 +24,17 @@ public class DemoPipelineService : BackgroundService
     /// <param name="logger">The logger instance</param>
     /// <param name="orchestrator">The pipeline orchestrator</param>
     /// <param name="pipelineBuilder">The pipeline builder</param>
+    /// <param name="connectorFactory">The connector factory</param>
     public DemoPipelineService(
         ILogger<DemoPipelineService> logger,
         IPipelineOrchestrator orchestrator,
-        PipelineBuilder pipelineBuilder)
+        PipelineBuilder pipelineBuilder,
+        IConnectorFactory connectorFactory)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _orchestrator = orchestrator ?? throw new ArgumentNullException(nameof(orchestrator));
         _pipelineBuilder = pipelineBuilder ?? throw new ArgumentNullException(nameof(pipelineBuilder));
+        _connectorFactory = connectorFactory ?? throw new ArgumentNullException(nameof(connectorFactory));
     }
 
     /// <inheritdoc />
@@ -73,6 +79,9 @@ public class DemoPipelineService : BackgroundService
                     _logger.LogWarning("  - {ErrorMessage}", error.Message);
                 }
             }
+
+            // Demonstrate file connectors
+            await DemonstrateFileConnectorsAsync(stoppingToken);
 
             // Wait a bit before shutting down
             await Task.Delay(2000, stoppingToken);
@@ -150,25 +159,191 @@ public class DemoPipelineService : BackgroundService
     }
 
     /// <summary>
-    /// Demonstrates configuration loading from file.
+    /// Demonstrates file connectors by reading from sample data files.
     /// </summary>
+    /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>A task representing the async operation</returns>
-    private async Task DemonstrateConfigurationLoadingAsync()
+    private async Task DemonstrateFileConnectorsAsync(CancellationToken cancellationToken)
     {
         try
         {
-            // This would load a configuration from the sample files we created
-            _logger.LogInformation("Configuration loading demonstration would go here");
-            
-            // Example of how to use the configuration manager:
-            // var configManager = serviceProvider.GetRequiredService<ConfigurationManager>();
-            // var config = await configManager.LoadPipelineConfigurationAsync("samples/configurations/sample-pipeline.json");
-            
-            await Task.CompletedTask;
+            _logger.LogInformation("=== File Connectors Demonstration ===");
+
+            // Demonstrate CSV connector
+            await DemonstrateCsvConnectorAsync(cancellationToken);
+
+            // Demonstrate JSON connector
+            await DemonstrateJsonConnectorAsync(cancellationToken);
+
+            // Demonstrate XML connector
+            await DemonstrateXmlConnectorAsync(cancellationToken);
+
+            _logger.LogInformation("=== File Connectors Demonstration Complete ===");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error demonstrating configuration loading");
+            _logger.LogError(ex, "Error demonstrating file connectors");
+        }
+    }
+
+    /// <summary>
+    /// Demonstrates CSV connector functionality.
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>A task representing the async operation</returns>
+    private async Task DemonstrateCsvConnectorAsync(CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("--- CSV Connector Demo ---");
+
+        try
+        {
+            // Create CSV connector configuration
+            var csvConfig = ConnectorFactory.CreateTestConfiguration(
+                "CSV",
+                "Customer CSV Source",
+                "samples/data/customers.csv",
+                new Dictionary<string, object>
+                {
+                    ["hasHeaders"] = true,
+                    ["delimiter"] = ","
+                });
+
+            // Create CSV connector
+            var csvConnector = _connectorFactory.CreateSourceConnector<DataRecord>(csvConfig);
+
+            // Test connection
+            var testResult = await csvConnector.TestConnectionAsync(cancellationToken);
+            _logger.LogInformation("CSV Connection Test: {IsSuccessful} - {Message}", testResult.IsSuccessful, testResult.Message);
+
+            if (testResult.IsSuccessful)
+            {
+                // Get schema
+                var schema = await csvConnector.GetSchemaAsync(cancellationToken);
+                _logger.LogInformation("CSV Schema: {FieldCount} fields detected", schema.Fields.Count);
+
+                // Read records
+                var recordCount = 0;
+                await foreach (var record in csvConnector.ReadAsync(cancellationToken))
+                {
+                    recordCount++;
+                    if (recordCount <= 3) // Log first 3 records
+                    {
+                        _logger.LogInformation("CSV Record {RecordNumber}: {FieldCount} fields", record.RowNumber, record.Fields.Count);
+                    }
+                }
+                _logger.LogInformation("CSV Total Records Read: {RecordCount}", recordCount);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error in CSV connector demo");
+        }
+    }
+
+    /// <summary>
+    /// Demonstrates JSON connector functionality.
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>A task representing the async operation</returns>
+    private async Task DemonstrateJsonConnectorAsync(CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("--- JSON Connector Demo ---");
+
+        try
+        {
+            // Create JSON connector configuration
+            var jsonConfig = ConnectorFactory.CreateTestConfiguration(
+                "JSON",
+                "Product JSON Source",
+                "samples/data/products.json",
+                new Dictionary<string, object>
+                {
+                    ["arrayFormat"] = true
+                });
+
+            // Create JSON connector
+            var jsonConnector = _connectorFactory.CreateSourceConnector<DataRecord>(jsonConfig);
+
+            // Test connection
+            var testResult = await jsonConnector.TestConnectionAsync(cancellationToken);
+            _logger.LogInformation("JSON Connection Test: {IsSuccessful} - {Message}", testResult.IsSuccessful, testResult.Message);
+
+            if (testResult.IsSuccessful)
+            {
+                // Get estimated record count
+                var estimatedCount = await jsonConnector.GetEstimatedRecordCountAsync(cancellationToken);
+                _logger.LogInformation("JSON Estimated Records: {EstimatedCount}", estimatedCount);
+
+                // Read records
+                var recordCount = 0;
+                await foreach (var record in jsonConnector.ReadAsync(cancellationToken))
+                {
+                    recordCount++;
+                    if (recordCount <= 2) // Log first 2 records
+                    {
+                        _logger.LogInformation("JSON Record {RecordNumber}: {FieldCount} fields", record.RowNumber, record.Fields.Count);
+                    }
+                }
+                _logger.LogInformation("JSON Total Records Read: {RecordCount}", recordCount);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error in JSON connector demo");
+        }
+    }
+
+    /// <summary>
+    /// Demonstrates XML connector functionality.
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>A task representing the async operation</returns>
+    private async Task DemonstrateXmlConnectorAsync(CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("--- XML Connector Demo ---");
+
+        try
+        {
+            // Create XML connector configuration
+            var xmlConfig = ConnectorFactory.CreateTestConfiguration(
+                "XML",
+                "Order XML Source",
+                "samples/data/orders.xml",
+                new Dictionary<string, object>
+                {
+                    ["rootElement"] = "orders",
+                    ["recordElement"] = "order"
+                });
+
+            // Create XML connector
+            var xmlConnector = _connectorFactory.CreateSourceConnector<DataRecord>(xmlConfig);
+
+            // Test connection
+            var testResult = await xmlConnector.TestConnectionAsync(cancellationToken);
+            _logger.LogInformation("XML Connection Test: {IsSuccessful} - {Message}", testResult.IsSuccessful, testResult.Message);
+
+            if (testResult.IsSuccessful)
+            {
+                // Get schema
+                var schema = await xmlConnector.GetSchemaAsync(cancellationToken);
+                _logger.LogInformation("XML Schema: {FieldCount} fields detected", schema.Fields.Count);
+
+                // Read records
+                var recordCount = 0;
+                await foreach (var record in xmlConnector.ReadAsync(cancellationToken))
+                {
+                    recordCount++;
+                    if (recordCount <= 2) // Log first 2 records
+                    {
+                        _logger.LogInformation("XML Record {RecordNumber}: {FieldCount} fields", record.RowNumber, record.Fields.Count);
+                    }
+                }
+                _logger.LogInformation("XML Total Records Read: {RecordCount}", recordCount);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error in XML connector demo");
         }
     }
 }
