@@ -1,0 +1,11 @@
+CustomerId,FirstName,LastName,Email,Phone,DateOfBirth,Address,City,State,ZipCode,Country,CreatedDate,IsActive,CustomerType,CreditLimit
+1,John,Smith,john.smith@example.com,(555) 123-4567,1985-03-15,123 Main St,New York,NY,10001,USA,2020-01-15,true,Premium,25000
+2,Jane,Johnson,jane.johnson@example.com,(555) 234-5678,1990-07-22,456 Oak Ave,Los Angeles,CA,90210,USA,2020-02-20,true,Regular,15000
+3,Michael,Brown,michael.brown@example.com,(555) 345-6789,1982-11-08,789 Pine Rd,Chicago,IL,60601,USA,2020-03-10,true,Premium,30000
+4,Sarah,Davis,sarah.davis@example.com,(555) 456-7890,1988-05-30,321 Elm Dr,Houston,TX,77001,USA,2020-04-05,false,Regular,10000
+5,David,Wilson,david.wilson@example.com,(555) 567-8901,1975-12-12,654 Maple Ln,Phoenix,AZ,85001,USA,2020-05-18,true,Premium,35000
+6,Emily,Garcia,emily.garcia@example.com,(555) 678-9012,1992-09-03,987 Cedar Ct,Philadelphia,PA,19101,USA,2020-06-25,true,Regular,12000
+7,Robert,Martinez,robert.martinez@example.com,(555) 789-0123,1980-01-25,147 Park Blvd,San Antonio,TX,78201,USA,2020-07-30,true,Premium,28000
+8,Jessica,Rodriguez,jessica.rodriguez@example.com,(555) 890-1234,1987-04-18,258 First St,San Diego,CA,92101,USA,2020-08-12,true,Regular,18000
+9,William,Hernandez,william.hernandez@example.com,(555) 901-2345,1983-10-07,369 Main St,Dallas,TX,75201,USA,2020-09-08,false,Regular,8000
+10,Ashley,Lopez,ashley.lopez@example.com,(555) 012-3456,1991-06-14,741 Oak Ave,San Jose,CA,95101,USA,2020-10-22,true,Premium,22000
