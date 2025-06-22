@@ -176,7 +176,7 @@ public class RoundTransformation : BaseNumericTransformation
     /// <param name="sourceField">The source field name</param>
     /// <param name="decimals">The number of decimal places</param>
     /// <param name="targetField">The target field name</param>
-    public RoundTransformation(string sourceField, int decimals = 2, string targetField = null) 
+    public RoundTransformation(string sourceField, int decimals = 2, string? targetField = null)
         : base(sourceField, targetField ?? sourceField)
     {
         _decimals = decimals;
@@ -213,7 +213,7 @@ public class AddTransformation : BaseNumericTransformation
     /// <param name="sourceField">The source field name</param>
     /// <param name="addend">The value to add</param>
     /// <param name="targetField">The target field name</param>
-    public AddTransformation(string sourceField, decimal addend, string targetField = null) 
+    public AddTransformation(string sourceField, decimal addend, string? targetField = null)
         : base(sourceField, targetField ?? sourceField)
     {
         _addend = addend;
@@ -250,7 +250,7 @@ public class MultiplyTransformation : BaseNumericTransformation
     /// <param name="sourceField">The source field name</param>
     /// <param name="multiplier">The multiplication factor</param>
     /// <param name="targetField">The target field name</param>
-    public MultiplyTransformation(string sourceField, decimal multiplier, string targetField = null) 
+    public MultiplyTransformation(string sourceField, decimal multiplier, string? targetField = null)
         : base(sourceField, targetField ?? sourceField)
     {
         _multiplier = multiplier;
@@ -287,7 +287,7 @@ public class FormatNumberTransformation : BaseNumericTransformation
     /// <param name="sourceField">The source field name</param>
     /// <param name="format">The format string (e.g., "C", "N2", "P")</param>
     /// <param name="targetField">The target field name</param>
-    public FormatNumberTransformation(string sourceField, string format, string targetField = null) 
+    public FormatNumberTransformation(string sourceField, string format, string? targetField = null)
         : base(sourceField, targetField ?? sourceField)
     {
         _format = format;
@@ -340,7 +340,7 @@ public class AbsoluteValueTransformation : BaseNumericTransformation
     /// </summary>
     /// <param name="sourceField">The source field name</param>
     /// <param name="targetField">The target field name</param>
-    public AbsoluteValueTransformation(string sourceField, string targetField = null) 
+    public AbsoluteValueTransformation(string sourceField, string? targetField = null)
         : base(sourceField, targetField ?? sourceField)
     {
     }
@@ -428,20 +428,20 @@ public class CalculateTransformation : IFieldTransformation
     }
 
     /// <inheritdoc />
-    public async Task<TransformationResult> TransformAsync(DataRecord record, Interfaces.ITransformationContext context, CancellationToken cancellationToken = default)
+    public Task<TransformationResult> TransformAsync(DataRecord record, Interfaces.ITransformationContext context, CancellationToken cancellationToken = default)
     {
         var startTime = DateTimeOffset.UtcNow;
-        
+
         try
         {
             var leftValue = BaseNumericTransformation.ToDecimal(record.GetField<object>(_leftField));
             var rightValue = BaseNumericTransformation.ToDecimal(record.GetField<object>(_rightField));
-            
+
             if (leftValue == null || rightValue == null)
             {
                 var result = TransformationResultHelper.Skipped(record, "One or both operands are not numeric");
                 context.SkipRecord();
-                return result;
+                return Task.FromResult(result);
             }
 
             decimal calculatedValue = _operation switch
@@ -453,20 +453,20 @@ public class CalculateTransformation : IFieldTransformation
                 MathOperation.Modulo => rightValue.Value != 0 ? leftValue.Value % rightValue.Value : 0,
                 _ => throw new InvalidOperationException($"Unsupported operation: {_operation}")
             };
-            
+
             var outputRecord = record.Clone();
             outputRecord.SetField(TargetField, calculatedValue);
-            
+
             var transformResult = TransformationResultHelper.Success(outputRecord);
             context.UpdateStatistics(1, 2, DateTimeOffset.UtcNow - startTime);
-            
-            return transformResult;
+
+            return Task.FromResult(transformResult);
         }
         catch (Exception ex)
         {
             var result = TransformationResultHelper.Failure($"Calculation failed: {ex.Message}", ex);
             context.AddError($"Calculation failed: {ex.Message}", ex);
-            return result;
+            return Task.FromResult(result);
         }
     }
 

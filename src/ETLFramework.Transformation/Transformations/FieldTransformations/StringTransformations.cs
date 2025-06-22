@@ -135,7 +135,7 @@ public class UppercaseTransformation : BaseStringTransformation
     /// </summary>
     /// <param name="sourceField">The source field name</param>
     /// <param name="targetField">The target field name</param>
-    public UppercaseTransformation(string sourceField, string targetField = null) 
+    public UppercaseTransformation(string sourceField, string? targetField = null)
         : base(sourceField, targetField ?? sourceField)
     {
     }
@@ -167,7 +167,7 @@ public class LowercaseTransformation : BaseStringTransformation
     /// </summary>
     /// <param name="sourceField">The source field name</param>
     /// <param name="targetField">The target field name</param>
-    public LowercaseTransformation(string sourceField, string targetField = null) 
+    public LowercaseTransformation(string sourceField, string? targetField = null)
         : base(sourceField, targetField ?? sourceField)
     {
     }
@@ -199,7 +199,7 @@ public class TrimTransformation : BaseStringTransformation
     /// </summary>
     /// <param name="sourceField">The source field name</param>
     /// <param name="targetField">The target field name</param>
-    public TrimTransformation(string sourceField, string targetField = null) 
+    public TrimTransformation(string sourceField, string? targetField = null)
         : base(sourceField, targetField ?? sourceField)
     {
     }
@@ -237,7 +237,7 @@ public class RegexReplaceTransformation : BaseStringTransformation
     /// <param name="pattern">The regex pattern</param>
     /// <param name="replacement">The replacement text</param>
     /// <param name="targetField">The target field name</param>
-    public RegexReplaceTransformation(string sourceField, string pattern, string replacement, string targetField = null) 
+    public RegexReplaceTransformation(string sourceField, string pattern, string replacement, string? targetField = null)
         : base(sourceField, targetField ?? sourceField)
     {
         _pattern = pattern;
@@ -348,28 +348,28 @@ public class ConcatenateTransformation : IFieldTransformation
     }
 
     /// <inheritdoc />
-    public async Task<TransformationResult> TransformAsync(DataRecord record, Interfaces.ITransformationContext context, CancellationToken cancellationToken = default)
+    public Task<TransformationResult> TransformAsync(DataRecord record, Interfaces.ITransformationContext context, CancellationToken cancellationToken = default)
     {
         var startTime = DateTimeOffset.UtcNow;
-        
+
         try
         {
             var values = _sourceFields.Select(field => record.GetField<object>(field)?.ToString() ?? "").ToArray();
             var concatenatedValue = string.Join(_separator, values);
-            
+
             var outputRecord = record.Clone();
             outputRecord.SetField(TargetField, concatenatedValue);
-            
+
             var result = TransformationResultHelper.Success(outputRecord);
             context.UpdateStatistics(1, _sourceFields.Length, DateTimeOffset.UtcNow - startTime);
-            
-            return result;
+
+            return Task.FromResult(result);
         }
         catch (Exception ex)
         {
             var result = TransformationResultHelper.Failure($"Concatenation failed: {ex.Message}", ex);
             context.AddError($"Concatenation failed: {ex.Message}", ex);
-            return result;
+            return Task.FromResult(result);
         }
     }
 

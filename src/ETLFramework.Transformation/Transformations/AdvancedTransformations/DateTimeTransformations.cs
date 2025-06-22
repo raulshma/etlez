@@ -298,7 +298,7 @@ public class DateTimePartTransformation : BaseDateTimeTransformation
     /// <inheritdoc />
     protected override Task<object?> TransformDateTimeAsync(DateTime dateTime, DataRecord record, ETLFramework.Transformation.Interfaces.ITransformationContext context, CancellationToken cancellationToken)
     {
-        object? result = _part switch
+        object result = _part switch
         {
             DateTimePart.Year => dateTime.Year,
             DateTimePart.Month => dateTime.Month,
@@ -313,7 +313,7 @@ public class DateTimePartTransformation : BaseDateTimeTransformation
             _ => throw new NotSupportedException($"Date part {_part} is not supported")
         };
 
-        return Task.FromResult(result);
+        return Task.FromResult<object?>(result);
     }
 }
 
