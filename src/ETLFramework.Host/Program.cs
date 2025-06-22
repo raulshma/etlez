@@ -2,6 +2,9 @@
 using Microsoft.Extensions.Hosting;
 using Serilog;
 using ETLFramework.Configuration.Extensions;
+using ETLFramework.Pipeline.Extensions;
+using ETLFramework.Core.Interfaces;
+using ETLFramework.Pipeline;
 
 namespace ETLFramework.Host;
 
@@ -60,6 +63,9 @@ public class Program
             {
                 // Register ETL Framework services
                 ConfigureServices(services);
+
+                // Register hosted service for demo
+                services.AddHostedService<DemoPipelineService>();
             });
 
     /// <summary>
@@ -71,8 +77,11 @@ public class Program
         // Register ETL Framework configuration services
         services.AddETLConfiguration();
 
-        // Register other ETL Framework services as they are implemented
-        // TODO: Add pipeline orchestration services
+        // Register ETL Framework pipeline services
+        services.AddETLPipeline();
+
+        // Demo service will be registered as hosted service
+
         // TODO: Add connector services
         // TODO: Add transformation services
 
