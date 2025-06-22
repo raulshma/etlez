@@ -24,6 +24,7 @@ public class PlaygroundHost : IPlaygroundHost
     private readonly IRuleEnginePlayground _ruleEnginePlayground;
     private readonly IPerformancePlayground _performancePlayground;
     private readonly IErrorHandlingPlayground _errorHandlingPlayground;
+    private readonly IHelpService _helpService;
 
     private readonly PlaygroundSettings _settings;
 
@@ -38,7 +39,8 @@ public class PlaygroundHost : IPlaygroundHost
         IValidationPlayground validationPlayground,
         IRuleEnginePlayground ruleEnginePlayground,
         IPerformancePlayground performancePlayground,
-        IErrorHandlingPlayground errorHandlingPlayground)
+        IErrorHandlingPlayground errorHandlingPlayground,
+        IHelpService helpService)
     {
         _logger = logger;
         _configuration = configuration;
@@ -51,6 +53,7 @@ public class PlaygroundHost : IPlaygroundHost
         _ruleEnginePlayground = ruleEnginePlayground;
         _performancePlayground = performancePlayground;
         _errorHandlingPlayground = errorHandlingPlayground;
+        _helpService = helpService;
 
         _settings = configuration.GetSection("Playground").Get<PlaygroundSettings>() ?? new PlaygroundSettings();
     }
@@ -127,7 +130,8 @@ public class PlaygroundHost : IPlaygroundHost
                 new() { Key = "6", Title = "⚡ Performance Playground", Description = "Benchmark performance with different data sizes", Action = () => _performancePlayground.RunAsync(cancellationToken) },
                 new() { Key = "7", Title = "❌ Error Handling Playground", Description = "Test error scenarios and recovery mechanisms", Action = () => _errorHandlingPlayground.RunAsync(cancellationToken) },
                 new() { Key = "8", Title = "📊 Sample Data Generator", Description = "Generate and export sample datasets", Action = RunSampleDataGeneratorAsync },
-                new() { Key = "9", Title = "ℹ️ System Information", Description = "View system and framework information", Action = ShowSystemInformationAsync },
+                new() { Key = "9", Title = "📚 Help & Documentation", Description = "View help and documentation", Action = ShowHelpMenuAsync },
+                new() { Key = "i", Title = "ℹ️ System Information", Description = "View system and framework information", Action = ShowSystemInformationAsync },
                 new() { Key = "0", Title = "🚪 Exit", Description = "Exit the playground application", Action = () => Task.FromResult(false) }
             };
 
@@ -291,6 +295,68 @@ public class PlaygroundHost : IPlaygroundHost
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Error during cleanup");
+        }
+
+        await Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Shows the help menu.
+    /// </summary>
+    private async Task ShowHelpMenuAsync()
+    {
+        while (true)
+        {
+            var options = new[]
+            {
+                "📖 Main Help",
+                "🚀 Getting Started",
+                "⌨️ Keyboard Shortcuts",
+                "🔌 Connector Help",
+                "🔧 Transformation Help",
+                "⚙️ Pipeline Help",
+                "✅ Validation Help",
+                "📋 Rule Engine Help",
+                "⚡ Performance Help",
+                "🔙 Back to Main Menu"
+            };
+
+            var selection = _utilities.PromptForSelection("Select help topic:", options);
+
+            switch (selection)
+            {
+                case var s when s.Contains("Main Help"):
+                    _helpService.ShowMainHelp();
+                    break;
+                case var s when s.Contains("Getting Started"):
+                    _helpService.ShowGettingStarted();
+                    break;
+                case var s when s.Contains("Keyboard Shortcuts"):
+                    _helpService.ShowKeyboardShortcuts();
+                    break;
+                case var s when s.Contains("Connector Help"):
+                    _helpService.ShowModuleHelp("connector");
+                    break;
+                case var s when s.Contains("Transformation Help"):
+                    _helpService.ShowModuleHelp("transformation");
+                    break;
+                case var s when s.Contains("Pipeline Help"):
+                    _helpService.ShowModuleHelp("pipeline");
+                    break;
+                case var s when s.Contains("Validation Help"):
+                    _helpService.ShowModuleHelp("validation");
+                    break;
+                case var s when s.Contains("Rule Engine Help"):
+                    _helpService.ShowModuleHelp("ruleengine");
+                    break;
+                case var s when s.Contains("Performance Help"):
+                    _helpService.ShowModuleHelp("performance");
+                    break;
+                case var s when s.Contains("Back"):
+                    return;
+            }
+
+            _utilities.WaitForKeyPress();
         }
 
         await Task.CompletedTask;

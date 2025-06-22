@@ -88,6 +88,7 @@ public class Program
                 services.AddSingleton<IPlaygroundHost, PlaygroundHost>();
                 services.AddSingleton<ISampleDataService, SampleDataService>();
                 services.AddSingleton<IPlaygroundUtilities, PlaygroundUtilities>();
+                services.AddSingleton<IHelpService, HelpService>();
 
                 // Register playground modules
                 services.AddTransient<IConnectorPlayground, ConnectorPlayground>();
