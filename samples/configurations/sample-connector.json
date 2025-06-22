@@ -1,0 +1,58 @@
+{
+  "id": "550e8400-e29b-41d4-a716-446655440020",
+  "name": "Production SQL Server Connector",
+  "connectorType": "SqlServer",
+  "description": "Production SQL Server connector for customer data warehouse",
+  "connectionString": "Server=${PROD_DB_SERVER};Database=${PROD_DB_NAME};User Id=${PROD_DB_USER};Password=${PROD_DB_PASSWORD};Encrypt=true;TrustServerCertificate=false",
+  "connectionTimeout": "00:00:30",
+  "commandTimeout": "00:10:00",
+  "maxRetryAttempts": 5,
+  "retryDelay": "00:00:10",
+  "useConnectionPooling": true,
+  "maxPoolSize": 100,
+  "minPoolSize": 10,
+  "batchSize": 2000,
+  "enableDetailedLogging": true,
+  "connectionProperties": {
+    "applicationName": "ETL Framework",
+    "connectTimeout": 30,
+    "commandTimeout": 600,
+    "multipleActiveResultSets": true,
+    "persistSecurityInfo": false
+  },
+  "authentication": {
+    "authenticationType": "SqlAuthentication",
+    "credentials": {
+      "username": "${PROD_DB_USER}",
+      "password": "${PROD_DB_PASSWORD}"
+    }
+  },
+  "schemaMapping": {
+    "typeMappings": {
+      "string": "NVARCHAR",
+      "int": "INT",
+      "long": "BIGINT",
+      "decimal": "DECIMAL(18,2)",
+      "datetime": "DATETIME2",
+      "bool": "BIT",
+      "guid": "UNIQUEIDENTIFIER"
+    }
+  },
+  "settings": {
+    "bulkCopyTimeout": 600,
+    "bulkCopyBatchSize": 10000,
+    "enableBulkCopy": true,
+    "isolationLevel": "ReadCommitted",
+    "queryTimeout": 300,
+    "connectionLifetime": 1800,
+    "minPoolSize": 10,
+    "maxPoolSize": 100,
+    "pooling": true
+  },
+  "tags": [
+    "production",
+    "sql-server",
+    "data-warehouse",
+    "high-performance"
+  ]
+}

@@ -1,0 +1,156 @@
+{
+  "id": "550e8400-e29b-41d4-a716-446655440000",
+  "name": "Sample Data Pipeline",
+  "description": "A sample ETL pipeline that extracts data from a CSV file, transforms it, and loads it into a SQL Server database",
+  "version": "1.0.0",
+  "author": "ETL Framework Team",
+  "isEnabled": true,
+  "stages": [
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440001",
+      "name": "Extract CSV Data",
+      "description": "Extract data from a CSV file",
+      "stageType": "Extract",
+      "order": 1,
+      "isEnabled": true,
+      "connectorConfiguration": {
+        "id": "550e8400-e29b-41d4-a716-446655440010",
+        "name": "CSV Source Connector",
+        "connectorType": "CSV",
+        "description": "Connector for reading CSV files",
+        "connectionString": "FilePath=${DATA_PATH:/data/input}/customers.csv",
+        "connectionProperties": {
+          "hasHeaders": true,
+          "delimiter": ",",
+          "encoding": "UTF-8"
+        },
+        "batchSize": 1000,
+        "enableDetailedLogging": false,
+        "tags": ["csv", "source"]
+      },
+      "settings": {
+        "skipEmptyRows": true,
+        "trimWhitespace": true
+      }
+    },
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440002",
+      "name": "Transform Customer Data",
+      "description": "Apply transformations to customer data",
+      "stageType": "Transform",
+      "order": 2,
+      "isEnabled": true,
+      "transformationConfiguration": {
+        "rules": [
+          {
+            "ruleType": "FieldMapping",
+            "settings": {
+              "mappings": {
+                "customer_id": "CustomerId",
+                "first_name": "FirstName",
+                "last_name": "LastName",
+                "email_address": "Email",
+                "phone_number": "Phone"
+              }
+            }
+          },
+          {
+            "ruleType": "DataValidation",
+            "settings": {
+              "validations": {
+                "Email": {
+                  "required": true,
+                  "pattern": "^[\\w\\.-]+@[\\w\\.-]+\\.[a-zA-Z]{2,}$"
+                },
+                "Phone": {
+                  "required": false,
+                  "pattern": "^\\+?[1-9]\\d{1,14}$"
+                }
+              }
+            }
+          },
+          {
+            "ruleType": "DataCleaning",
+            "settings": {
+              "operations": {
+                "FirstName": ["trim", "titleCase"],
+                "LastName": ["trim", "titleCase"],
+                "Email": ["trim", "toLowerCase"]
+              }
+            }
+          }
+        ]
+      },
+      "settings": {
+        "continueOnValidationError": true,
+        "logValidationErrors": true
+      }
+    },
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440003",
+      "name": "Load to SQL Server",
+      "description": "Load transformed data into SQL Server database",
+      "stageType": "Load",
+      "order": 3,
+      "isEnabled": true,
+      "connectorConfiguration": {
+        "id": "550e8400-e29b-41d4-a716-446655440011",
+        "name": "SQL Server Destination Connector",
+        "connectorType": "SqlServer",
+        "description": "Connector for writing to SQL Server",
+        "connectionString": "Server=${DB_SERVER:localhost};Database=${DB_NAME:SampleDB};Integrated Security=true;TrustServerCertificate=true",
+        "connectionTimeout": "00:00:30",
+        "commandTimeout": "00:05:00",
+        "maxRetryAttempts": 3,
+        "retryDelay": "00:00:05",
+        "useConnectionPooling": true,
+        "maxPoolSize": 50,
+        "minPoolSize": 5,
+        "batchSize": 500,
+        "enableDetailedLogging": true,
+        "connectionProperties": {
+          "tableName": "Customers",
+          "writeMode": "Upsert",
+          "keyColumns": ["CustomerId"]
+        },
+        "tags": ["sql-server", "destination"]
+      },
+      "settings": {
+        "createTableIfNotExists": true,
+        "truncateBeforeLoad": false
+      }
+    }
+  ],
+  "globalSettings": {
+    "parallelism": 4,
+    "bufferSize": 10000,
+    "enableMetrics": true,
+    "metricsInterval": "00:01:00"
+  },
+  "errorHandling": {
+    "stopOnError": false,
+    "maxErrors": 100
+  },
+  "retry": {
+    "maxAttempts": 3,
+    "delay": "00:00:10"
+  },
+  "timeout": "01:00:00",
+  "maxDegreeOfParallelism": 4,
+  "schedule": {
+    "cronExpression": "0 2 * * *",
+    "isEnabled": false
+  },
+  "notifications": {
+    "enableEmailNotifications": true,
+    "emailRecipients": [
+      "admin@company.com",
+      "dataops@company.com"
+    ]
+  },
+  "tags": [
+    "customer-data",
+    "daily-etl",
+    "production"
+  ]
+}

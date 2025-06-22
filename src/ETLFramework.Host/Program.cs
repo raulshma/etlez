@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Serilog;
+using ETLFramework.Configuration.Extensions;
 
 namespace ETLFramework.Host;
 
@@ -67,8 +68,13 @@ public class Program
     /// <param name="services">Service collection to configure</param>
     private static void ConfigureServices(IServiceCollection services)
     {
-        // TODO: Register ETL Framework services here
-        // This will be expanded as we implement the core interfaces and services
+        // Register ETL Framework configuration services
+        services.AddETLConfiguration();
+
+        // Register other ETL Framework services as they are implemented
+        // TODO: Add pipeline orchestration services
+        // TODO: Add connector services
+        // TODO: Add transformation services
 
         Log.Information("ETL Framework services configured");
     }
