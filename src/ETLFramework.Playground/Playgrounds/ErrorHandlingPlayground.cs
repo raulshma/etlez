@@ -232,7 +232,7 @@ public class ErrorHandlingPlayground : IErrorHandlingPlayground
 
         var selectedScenario = _utilities.PromptForSelection("Select recovery scenario:", recoveryScenarios);
 
-        await _utilities.WithProgressAsync(async progress =>
+        await _utilities.WithProgressAsync(progress =>
         {
             progress.Report("Simulating error scenario...");
 
@@ -284,6 +284,7 @@ public class ErrorHandlingPlayground : IErrorHandlingPlayground
             }
 
             progress.Report("Recovery completed");
+            return Task.CompletedTask;
 
         }, "Testing Error Recovery");
     }

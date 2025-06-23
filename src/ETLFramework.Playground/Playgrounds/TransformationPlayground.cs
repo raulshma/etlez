@@ -519,7 +519,7 @@ public class TransformationPlayground : ITransformationPlayground
 
         try
         {
-            await _utilities.WithProgressAsync(async progress =>
+            await _utilities.WithProgressAsync(progress =>
             {
                 progress.Report("Applying complex transformations...");
 
@@ -666,6 +666,8 @@ public class TransformationPlayground : ITransformationPlayground
                 AnsiConsole.MarkupLine($"[blue]📊 Records processed: {transformedData.Count}[/]");
                 AnsiConsole.MarkupLine($"[blue]📊 Scenario: {selectedScenario}[/]");
 
+                return Task.CompletedTask;
+
             }, "Testing Complex Transformations");
 
         }
@@ -717,7 +719,7 @@ public class TransformationPlayground : ITransformationPlayground
 
         try
         {
-            await _utilities.WithProgressAsync(async progress =>
+            await _utilities.WithProgressAsync(progress =>
             {
                 progress.Report("Building custom transformation...");
 
@@ -831,6 +833,8 @@ public class TransformationPlayground : ITransformationPlayground
                 AnsiConsole.WriteLine();
                 AnsiConsole.MarkupLine($"[green]✅ Custom transformation completed successfully[/]");
                 AnsiConsole.MarkupLine($"[blue]📊 Records processed: {transformedData.Count}[/]");
+
+                return Task.CompletedTask;
 
             }, "Building Custom Transformation");
 

@@ -130,8 +130,8 @@ public class PlaygroundHost : IPlaygroundHost
                 new() { Key = "6", Title = "⚡ Performance Playground", Description = "Benchmark performance with different data sizes", Action = () => _performancePlayground.RunAsync(cancellationToken) },
                 new() { Key = "7", Title = "❌ Error Handling Playground", Description = "Test error scenarios and recovery mechanisms", Action = () => _errorHandlingPlayground.RunAsync(cancellationToken) },
                 new() { Key = "8", Title = "📊 Sample Data Generator", Description = "Generate and export sample datasets", Action = RunSampleDataGeneratorAsync },
-                new() { Key = "9", Title = "📚 Help & Documentation", Description = "View help and documentation", Action = ShowHelpMenuAsync },
-                new() { Key = "i", Title = "ℹ️ System Information", Description = "View system and framework information", Action = ShowSystemInformationAsync },
+                new() { Key = "9", Title = "📚 Help & Documentation", Description = "View help and documentation", Action = () => { ShowHelpMenu(); return Task.CompletedTask; } },
+                new() { Key = "i", Title = "ℹ️ System Information", Description = "View system and framework information", Action = () => { ShowSystemInformation(); return Task.CompletedTask; } },
                 new() { Key = "0", Title = "🚪 Exit", Description = "Exit the playground application", Action = () => Task.FromResult(false) }
             };
 
@@ -250,7 +250,7 @@ public class PlaygroundHost : IPlaygroundHost
     /// <summary>
     /// Shows system and framework information.
     /// </summary>
-    private async Task ShowSystemInformationAsync()
+    private void ShowSystemInformation()
     {
         _utilities.DisplayHeader("System Information", "ETL Framework and system details");
 
@@ -272,14 +272,12 @@ public class PlaygroundHost : IPlaygroundHost
         info.AddRow("Export Directory", _settings.ExportDirectory);
 
         AnsiConsole.Write(info);
-
-        await Task.CompletedTask;
     }
 
     /// <summary>
     /// Cleanup resources when shutting down.
     /// </summary>
-    private async Task CleanupAsync()
+    private Task CleanupAsync()
     {
         _logger.LogInformation("Cleaning up playground resources");
 
@@ -297,13 +295,13 @@ public class PlaygroundHost : IPlaygroundHost
             _logger.LogWarning(ex, "Error during cleanup");
         }
 
-        await Task.CompletedTask;
+        return Task.CompletedTask;
     }
 
     /// <summary>
     /// Shows the help menu.
     /// </summary>
-    private async Task ShowHelpMenuAsync()
+    private void ShowHelpMenu()
     {
         while (true)
         {
@@ -358,7 +356,5 @@ public class PlaygroundHost : IPlaygroundHost
 
             _utilities.WaitForKeyPress();
         }
-
-        await Task.CompletedTask;
     }
 }
