@@ -267,11 +267,22 @@ public class YamlConfigurationProvider : IConfigurationProvider
         {
             // Basic YAML syntax validation
             var yamlObject = _deserializer.Deserialize(configurationContent);
-            
-            // Additional validation could be added here based on schema type
+
             if (yamlObject == null)
             {
                 result.AddError("YAML configuration is empty or invalid");
+                return Task.FromResult(result);
+            }
+
+            // Additional validation based on schema type
+            switch (schemaType)
+            {
+                case ConfigurationSchemaType.Pipeline:
+                    ValidatePipelineYamlSchema(yamlObject, result);
+                    break;
+                case ConfigurationSchemaType.Connector:
+                    ValidateConnectorYamlSchema(yamlObject, result);
+                    break;
             }
         }
         catch (YamlDotNet.Core.YamlException ex)
@@ -390,5 +401,105 @@ public class YamlConfigurationProvider : IConfigurationProvider
           - "production"
           - "sql-server"
         """;
+    }
+
+    /// <summary>
+    /// Validates YAML pipeline schema.
+    /// </summary>
+    /// <param name="yamlObject">The parsed YAML object</param>
+    /// <param name="result">The validation result to update</param>
+    private void ValidatePipelineYamlSchema(object yamlObject, ValidationResult result)
+    {
+        if (yamlObject is not Dictionary<object, object> pipeline)
+        {
+            result.AddError("Pipeline configuration must be a YAML object");
+            return;
+        }
+
+        // Validate required pipeline properties
+        if (!pipeline.ContainsKey("name"))
+        {
+            result.AddError("Pipeline configuration must have a 'name' property");
+        }
+
+        if (pipeline.ContainsKey("stages"))
+        {
+            if (pipeline["stages"] is List<object> stages && stages.Count == 0)
+            {
+                result.AddWarning("Pipeline has no stages defined");
+            }
+        }
+        else
+        {
+            result.AddWarning("Pipeline configuration should have a 'stages' property");
+        }
+
+        // Validate error handling if present
+        if (pipeline.ContainsKey("errorHandling") && pipeline["errorHandling"] is Dictionary<object, object> errorHandling)
+        {
+            if (errorHandling.ContainsKey("maxErrors") && errorHandling["maxErrors"] is int maxErrors && maxErrors < 0)
+            {
+                result.AddError("maxErrors must be non-negative");
+            }
+        }
+
+        // Validate schedule if present
+        if (pipeline.ContainsKey("schedule") && pipeline["schedule"] is Dictionary<object, object> schedule)
+        {
+            if (schedule.ContainsKey("isEnabled") && schedule["isEnabled"] is bool isEnabled && isEnabled)
+            {
+                if (!schedule.ContainsKey("cronExpression") || schedule["cronExpression"] is not string cronExpr || string.IsNullOrWhiteSpace(cronExpr))
+                {
+                    result.AddError("cronExpression is required when schedule is enabled");
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Validates YAML connector schema.
+    /// </summary>
+    /// <param name="yamlObject">The parsed YAML object</param>
+    /// <param name="result">The validation result to update</param>
+    private void ValidateConnectorYamlSchema(object yamlObject, ValidationResult result)
+    {
+        if (yamlObject is not Dictionary<object, object> connector)
+        {
+            result.AddError("Connector configuration must be a YAML object");
+            return;
+        }
+
+        // Validate required connector properties
+        if (!connector.ContainsKey("name"))
+        {
+            result.AddError("Connector configuration must have a 'name' property");
+        }
+
+        if (!connector.ContainsKey("connectorType"))
+        {
+            result.AddError("Connector configuration must have a 'connectorType' property");
+        }
+
+        if (!connector.ContainsKey("connectionString"))
+        {
+            result.AddError("Connector configuration must have a 'connectionString' property");
+        }
+
+        // Validate timeout values if present
+        if (connector.ContainsKey("connectionTimeout") && connector["connectionTimeout"] is string connTimeout)
+        {
+            if (!TimeSpan.TryParse(connTimeout, out var timeout) || timeout <= TimeSpan.Zero)
+            {
+                result.AddError("connectionTimeout must be a valid positive TimeSpan");
+            }
+        }
+
+        if (connector.ContainsKey("commandTimeout") && connector["commandTimeout"] is string cmdTimeout)
+        {
+            if (!TimeSpan.TryParse(cmdTimeout, out var timeout) || timeout <= TimeSpan.Zero)
+            {
+                result.AddError("commandTimeout must be a valid positive TimeSpan");
+            }
+        }
     }
 }

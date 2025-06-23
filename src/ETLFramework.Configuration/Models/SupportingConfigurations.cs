@@ -1,12 +1,13 @@
 using ETLFramework.Core.Interfaces;
 using ETLFramework.Core.Models;
+using System.Text.RegularExpressions;
 
 namespace ETLFramework.Configuration.Models;
 
 /// <summary>
 /// Concrete implementation of error handling configuration.
 /// </summary>
-public class ErrorHandlingConfiguration : IErrorHandlingConfiguration
+public class ErrorHandlingConfiguration : IErrorHandlingConfiguration, IValidatable
 {
     /// <summary>
     /// Initializes a new instance of the ErrorHandlingConfiguration class.
@@ -22,6 +23,27 @@ public class ErrorHandlingConfiguration : IErrorHandlingConfiguration
 
     /// <inheritdoc />
     public int MaxErrors { get; set; }
+
+    /// <summary>
+    /// Validates the error handling configuration.
+    /// </summary>
+    /// <returns>Validation result</returns>
+    public ValidationResult Validate()
+    {
+        var result = new ValidationResult { IsValid = true };
+
+        if (MaxErrors < 0)
+        {
+            result.AddError("MaxErrors must be non-negative", nameof(MaxErrors));
+        }
+
+        if (MaxErrors == 0 && !StopOnError)
+        {
+            result.AddWarning("MaxErrors is 0 but StopOnError is false - this may cause infinite error accumulation", nameof(MaxErrors));
+        }
+
+        return result;
+    }
 
     /// <summary>
     /// Creates a deep copy of this error handling configuration.
@@ -95,7 +117,7 @@ public class RetryConfiguration : IRetryConfiguration
 /// <summary>
 /// Concrete implementation of schedule configuration.
 /// </summary>
-public class ScheduleConfiguration : IScheduleConfiguration
+public class ScheduleConfiguration : IScheduleConfiguration, IValidatable
 {
     /// <summary>
     /// Initializes a new instance of the ScheduleConfiguration class.
@@ -111,6 +133,95 @@ public class ScheduleConfiguration : IScheduleConfiguration
 
     /// <inheritdoc />
     public bool IsEnabled { get; set; }
+
+    /// <summary>
+    /// Validates the schedule configuration.
+    /// </summary>
+    /// <returns>Validation result</returns>
+    public ValidationResult Validate()
+    {
+        var result = new ValidationResult { IsValid = true };
+
+        if (IsEnabled)
+        {
+            if (string.IsNullOrWhiteSpace(CronExpression))
+            {
+                result.AddError("CronExpression is required when schedule is enabled", nameof(CronExpression));
+            }
+            else if (!IsValidCronExpression(CronExpression))
+            {
+                result.AddError($"Invalid cron expression: {CronExpression}", nameof(CronExpression));
+            }
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Validates if a cron expression is in the correct format.
+    /// </summary>
+    /// <param name="cronExpression">The cron expression to validate</param>
+    /// <returns>True if valid, false otherwise</returns>
+    private static bool IsValidCronExpression(string cronExpression)
+    {
+        if (string.IsNullOrWhiteSpace(cronExpression))
+            return false;
+
+        // Basic cron expression validation (5 or 6 fields)
+        var parts = cronExpression.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length != 5 && parts.Length != 6)
+            return false;
+
+        // Validate each field using regex patterns
+        var patterns = new[]
+        {
+            @"^(\*|[0-5]?\d)$", // Minutes (0-59)
+            @"^(\*|[01]?\d|2[0-3])$", // Hours (0-23)
+            @"^(\*|[01]?\d|2\d|3[01])$", // Day of month (1-31)
+            @"^(\*|[01]?\d)$", // Month (1-12)
+            @"^(\*|[0-6])$" // Day of week (0-6)
+        };
+
+        // If 6 fields, first is seconds
+        var startIndex = parts.Length == 6 ? 1 : 0;
+        if (parts.Length == 6 && !Regex.IsMatch(parts[0], @"^(\*|[0-5]?\d)$"))
+            return false;
+
+        for (int i = 0; i < 5; i++)
+        {
+            var part = parts[startIndex + i];
+            // Allow more complex expressions with ranges, lists, and steps
+            if (!IsValidCronField(part, i))
+                return false;
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// Validates a single cron field.
+    /// </summary>
+    /// <param name="field">The field value</param>
+    /// <param name="fieldIndex">The field index (0=minute, 1=hour, etc.)</param>
+    /// <returns>True if valid</returns>
+    private static bool IsValidCronField(string field, int fieldIndex)
+    {
+        if (field == "*")
+            return true;
+
+        // Handle ranges (e.g., 1-5), lists (e.g., 1,3,5), and steps (e.g., */5, 1-10/2)
+        var pattern = fieldIndex switch
+        {
+            0 => @"^(\*|[0-5]?\d)([,-/](\*|[0-5]?\d))*$", // Minutes
+            1 => @"^(\*|[01]?\d|2[0-3])([,-/](\*|[01]?\d|2[0-3]))*$", // Hours
+            2 => @"^(\*|[01]?\d|2\d|3[01])([,-/](\*|[01]?\d|2\d|3[01]))*$", // Day of month
+            3 => @"^(\*|[01]?\d)([,-/](\*|[01]?\d))*$", // Month
+            4 => @"^(\*|[0-6])([,-/](\*|[0-6]))*$", // Day of week
+            _ => @"^.*$"
+        };
+
+        return Regex.IsMatch(field, pattern);
+    }
 
     /// <summary>
     /// Creates a deep copy of this schedule configuration.

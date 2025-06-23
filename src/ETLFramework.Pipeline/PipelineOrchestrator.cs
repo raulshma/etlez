@@ -198,11 +198,18 @@ public class PipelineOrchestrator : IPipelineOrchestrator, IDisposable
     /// <inheritdoc />
     public Task<bool> CancelScheduledPipelineAsync(Guid jobId)
     {
-        if (_scheduledJobs.TryRemove(jobId, out var job))
+        if (_scheduledJobs.TryGetValue(jobId, out var job))
         {
-            job.IsActive = false;
-            _logger.LogInformation("Cancelled scheduled job {JobId} for pipeline {PipelineId}", jobId, job.Pipeline.Id);
-            return Task.FromResult(true);
+            lock (job)
+            {
+                job.IsActive = false;
+            }
+
+            if (_scheduledJobs.TryRemove(jobId, out _))
+            {
+                _logger.LogInformation("Cancelled scheduled job {JobId} for pipeline {PipelineId}", jobId, job.Pipeline.Id);
+                return Task.FromResult(true);
+            }
         }
 
         _logger.LogWarning("Cannot cancel scheduled job - job not found: {JobId}", jobId);
@@ -391,16 +398,27 @@ public class PipelineOrchestrator : IPipelineOrchestrator, IDisposable
                     try
                     {
                         await ExecutePipelineAsync(job.Pipeline, context);
-                        job.LastRunTime = now;
-                        job.NextRunTime = CalculateNextRunTime(job.Schedule, now);
+
+                        // Update job properties atomically
+                        lock (job)
+                        {
+                            job.LastRunTime = now;
+                            job.NextRunTime = CalculateNextRunTime(job.Schedule, now);
+                        }
+
                         _logger.LogInformation("Scheduled job {JobId} completed successfully. Next run: {NextRun}",
                             job.Id, job.NextRunTime);
                     }
                     catch (Exception ex)
                     {
                         _logger.LogError(ex, "Scheduled job {JobId} failed", job.Id);
-                        job.LastRunTime = now;
-                        job.NextRunTime = CalculateNextRunTime(job.Schedule, now);
+
+                        // Update job properties atomically
+                        lock (job)
+                        {
+                            job.LastRunTime = now;
+                            job.NextRunTime = CalculateNextRunTime(job.Schedule, now);
+                        }
                     }
                 });
             }

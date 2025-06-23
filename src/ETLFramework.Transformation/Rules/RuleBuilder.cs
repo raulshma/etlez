@@ -1,4 +1,5 @@
 using ETLFramework.Core.Interfaces;
+using ETLFramework.Core.Models;
 using ETLFramework.Transformation.Interfaces;
 using Microsoft.Extensions.Logging;
 
@@ -240,7 +241,7 @@ public class RuleBuilder
     /// <param name="name">The action name</param>
     /// <param name="action">The custom action function</param>
     /// <returns>This builder instance</returns>
-    public RuleBuilder ThenExecute(string name, Func<ETLFramework.Core.Models.DataRecord, ITransformationContext, CancellationToken, Task<Core.Models.TransformationResult>> action)
+    public RuleBuilder ThenExecute(string name, Func<DataRecord, ITransformationContext, CancellationToken, Task<TransformationResult>> action)
     {
         var customAction = new CustomAction($"action_{++_actionCounter}", name, action);
         _rule.AddAction(customAction);

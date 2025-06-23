@@ -350,6 +350,55 @@ public class JsonConfigurationProvider : IConfigurationProvider
         {
             result.AddWarning("Pipeline has no stages defined");
         }
+
+        // Validate error handling if present
+        if (root.TryGetProperty("errorHandling", out var errorHandlingElement))
+        {
+            if (errorHandlingElement.TryGetProperty("maxErrors", out var maxErrorsElement))
+            {
+                if (maxErrorsElement.ValueKind == JsonValueKind.Number && maxErrorsElement.GetInt32() < 0)
+                {
+                    result.AddError("maxErrors must be non-negative");
+                }
+            }
+        }
+
+        // Validate schedule if present
+        if (root.TryGetProperty("schedule", out var scheduleElement))
+        {
+            if (scheduleElement.TryGetProperty("isEnabled", out var isEnabledElement) &&
+                isEnabledElement.ValueKind == JsonValueKind.True)
+            {
+                if (!scheduleElement.TryGetProperty("cronExpression", out var cronElement) ||
+                    cronElement.ValueKind != JsonValueKind.String ||
+                    string.IsNullOrWhiteSpace(cronElement.GetString()))
+                {
+                    result.AddError("cronExpression is required when schedule is enabled");
+                }
+            }
+        }
+
+        // Validate timeout if present
+        if (root.TryGetProperty("timeout", out var timeoutElement))
+        {
+            if (timeoutElement.ValueKind == JsonValueKind.String)
+            {
+                var timeoutStr = timeoutElement.GetString();
+                if (!TimeSpan.TryParse(timeoutStr, out var timeout) || timeout <= TimeSpan.Zero)
+                {
+                    result.AddError("timeout must be a valid positive TimeSpan");
+                }
+            }
+        }
+
+        // Validate maxDegreeOfParallelism if present
+        if (root.TryGetProperty("maxDegreeOfParallelism", out var parallelismElement))
+        {
+            if (parallelismElement.ValueKind == JsonValueKind.Number && parallelismElement.GetInt32() <= 0)
+            {
+                result.AddError("maxDegreeOfParallelism must be greater than zero");
+            }
+        }
     }
 
     private void ValidateConnectorSchema(JsonElement root, ValidationResult result)
@@ -368,6 +417,48 @@ public class JsonConfigurationProvider : IConfigurationProvider
         if (!root.TryGetProperty("connectionString", out _))
         {
             result.AddError("Connector configuration must have a 'connectionString' property");
+        }
+
+        // Validate timeout values if present
+        if (root.TryGetProperty("connectionTimeout", out var connTimeoutElement))
+        {
+            if (connTimeoutElement.ValueKind == JsonValueKind.String)
+            {
+                var timeoutStr = connTimeoutElement.GetString();
+                if (!TimeSpan.TryParse(timeoutStr, out var timeout) || timeout <= TimeSpan.Zero)
+                {
+                    result.AddError("connectionTimeout must be a valid positive TimeSpan");
+                }
+            }
+        }
+
+        if (root.TryGetProperty("commandTimeout", out var cmdTimeoutElement))
+        {
+            if (cmdTimeoutElement.ValueKind == JsonValueKind.String)
+            {
+                var timeoutStr = cmdTimeoutElement.GetString();
+                if (!TimeSpan.TryParse(timeoutStr, out var timeout) || timeout <= TimeSpan.Zero)
+                {
+                    result.AddError("commandTimeout must be a valid positive TimeSpan");
+                }
+            }
+        }
+
+        // Validate numeric properties
+        if (root.TryGetProperty("maxRetryAttempts", out var retryElement))
+        {
+            if (retryElement.ValueKind == JsonValueKind.Number && retryElement.GetInt32() < 0)
+            {
+                result.AddError("maxRetryAttempts must be non-negative");
+            }
+        }
+
+        if (root.TryGetProperty("batchSize", out var batchElement))
+        {
+            if (batchElement.ValueKind == JsonValueKind.Number && batchElement.GetInt32() <= 0)
+            {
+                result.AddError("batchSize must be greater than zero");
+            }
         }
     }
 

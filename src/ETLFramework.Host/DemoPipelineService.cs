@@ -7,6 +7,9 @@ using ETLFramework.Pipeline;
 using ETLFramework.Configuration.Models;
 using ETLFramework.Connectors;
 using ETLFramework.Connectors.Database;
+using ETLFramework.Transformation.Models;
+using ETLFramework.Transformation.Processors;
+using ETLFramework.Transformation.Transformations.FieldTransformations;
 
 namespace ETLFramework.Host;
 
@@ -1066,14 +1069,14 @@ public class DemoPipelineService : BackgroundService
                 processor,
                 _serviceProvider.GetRequiredService<ILogger<ETLFramework.Transformation.Pipeline.TransformationStage>>());
 
-            stage2.AddTransformation(new ETLFramework.Transformation.Transformations.FieldTransformations.MultiplyTransformation("score", 2, "doubledScore"));
+            stage2.AddTransformation(new MultiplyTransformation("score", 2, "doubledScore"));
 
             // Add stages to pipeline
             pipeline.AddStage(stage1);
             pipeline.AddStage(stage2);
 
             // Create transformation context
-            var context = new ETLFramework.Transformation.Models.TransformationContext("PipelineDemo", cancellationToken);
+            var context = new TransformationContext("PipelineDemo", cancellationToken);
 
             // Execute pipeline
             var results = await pipeline.ExecuteAsync(records, context, cancellationToken);
@@ -1136,10 +1139,10 @@ public class DemoPipelineService : BackgroundService
             };
 
             // Create processor and context
-            var processor = new ETLFramework.Transformation.Processors.TransformationProcessor(
-                _serviceProvider.GetRequiredService<ILogger<ETLFramework.Transformation.Processors.TransformationProcessor>>());
+            var processor = new TransformationProcessor(
+                _serviceProvider.GetRequiredService<ILogger<TransformationProcessor>>());
 
-            var context = new ETLFramework.Transformation.Models.TransformationContext("ProcessorDemo", cancellationToken);
+            var context = new TransformationContext("ProcessorDemo", cancellationToken);
 
             // Validate transformations
             var validationResult = processor.ValidateTransformations(transformations, context);
@@ -1298,7 +1301,7 @@ public class DemoPipelineService : BackgroundService
             ruleEngine.AddRule(standardProcessingRule);
 
             // Create transformation context
-            var context = new ETLFramework.Transformation.Models.TransformationContext("RuleEngineDemo", cancellationToken);
+            var context = new TransformationContext("RuleEngineDemo", cancellationToken);
 
             // Validate rules
             var validationResult = ruleEngine.ValidateRules(context);
@@ -1314,7 +1317,7 @@ public class DemoPipelineService : BackgroundService
             // Apply rules to records
             _logger.LogInformation("Applying {RuleCount} rules to {RecordCount} records", ruleEngine.Rules.Count, records.Count);
 
-            var results = new List<Core.Models.TransformationResult>();
+            var results = new List<TransformationResult>();
             foreach (var record in records)
             {
                 var result = await ruleEngine.ApplyRulesAsync(record, context, cancellationToken);

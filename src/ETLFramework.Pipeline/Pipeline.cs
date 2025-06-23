@@ -12,7 +12,8 @@ public class Pipeline : IPipeline
 {
     private readonly ILogger<Pipeline> _logger;
     private readonly List<IPipelineStage> _stages;
-    private PipelineStatus _status;
+    private readonly object _statusLock = new object();
+    private volatile PipelineStatus _status;
 
     /// <summary>
     /// Initializes a new instance of the Pipeline class.
@@ -44,7 +45,16 @@ public class Pipeline : IPipeline
     public IReadOnlyList<IPipelineStage> Stages => _stages.AsReadOnly();
 
     /// <inheritdoc />
-    public PipelineStatus Status => _status;
+    public PipelineStatus Status
+    {
+        get
+        {
+            lock (_statusLock)
+            {
+                return _status;
+            }
+        }
+    }
 
     /// <inheritdoc />
     public async Task<PipelineExecutionResult> ExecuteAsync(IPipelineContext context, CancellationToken cancellationToken = default)
@@ -64,7 +74,7 @@ public class Pipeline : IPipeline
             _logger.LogInformation("Starting pipeline execution: {PipelineName} (ID: {PipelineId}, Execution: {ExecutionId})",
                 Name, Id, context.ExecutionId);
 
-            _status = PipelineStatus.Running;
+            SetStatus(PipelineStatus.Running);
 
             // Validate pipeline before execution
             var validationResult = await ValidateAsync();
@@ -166,21 +176,21 @@ public class Pipeline : IPipeline
             }
 
             executionResult.IsSuccess = executionResult.Errors.Count == 0;
-            _status = executionResult.IsSuccess ? PipelineStatus.Completed : PipelineStatus.Failed;
+            SetStatus(executionResult.IsSuccess ? PipelineStatus.Completed : PipelineStatus.Failed);
 
             _logger.LogInformation("Pipeline execution completed: {PipelineName} - Success: {IsSuccess}, Records: {RecordsProcessed}, Errors: {ErrorCount}",
                 Name, executionResult.IsSuccess, executionResult.RecordsProcessed, executionResult.Errors.Count);
         }
         catch (OperationCanceledException)
         {
-            _status = PipelineStatus.Cancelled;
+            SetStatus(PipelineStatus.Cancelled);
             executionResult.IsSuccess = false;
             _logger.LogWarning("Pipeline execution was cancelled: {PipelineName}", Name);
             throw;
         }
         catch (Exception ex)
         {
-            _status = PipelineStatus.Failed;
+            SetStatus(PipelineStatus.Failed);
             executionResult.IsSuccess = false;
             
             _logger.LogError(ex, "Pipeline execution failed: {PipelineName}", Name);
@@ -274,9 +284,12 @@ public class Pipeline : IPipeline
     {
         if (stage == null) throw new ArgumentNullException(nameof(stage));
 
-        if (_status == PipelineStatus.Running)
+        lock (_statusLock)
         {
-            throw new InvalidOperationException("Cannot add stages while pipeline is running");
+            if (_status == PipelineStatus.Running)
+            {
+                throw new InvalidOperationException("Cannot add stages while pipeline is running");
+            }
         }
 
         _stages.Add(stage);
@@ -327,9 +340,12 @@ public class Pipeline : IPipeline
     /// </summary>
     public void ClearStages()
     {
-        if (_status == PipelineStatus.Running)
+        lock (_statusLock)
         {
-            throw new InvalidOperationException("Cannot clear stages while pipeline is running");
+            if (_status == PipelineStatus.Running)
+            {
+                throw new InvalidOperationException("Cannot clear stages while pipeline is running");
+            }
         }
 
         var count = _stages.Count;
@@ -338,11 +354,23 @@ public class Pipeline : IPipeline
     }
 
     /// <summary>
+    /// Thread-safe method to set the pipeline status.
+    /// </summary>
+    /// <param name="status">The new status</param>
+    private void SetStatus(PipelineStatus status)
+    {
+        lock (_statusLock)
+        {
+            _status = status;
+        }
+    }
+
+    /// <summary>
     /// Returns a string representation of the pipeline.
     /// </summary>
     /// <returns>String representation</returns>
     public override string ToString()
     {
-        return $"Pipeline[{Name}, Stages={_stages.Count}, Status={_status}]";
+        return $"Pipeline[{Name}, Stages={_stages.Count}, Status={Status}]";
     }
 }

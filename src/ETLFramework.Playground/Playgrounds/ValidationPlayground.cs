@@ -4,7 +4,6 @@ using ETLFramework.Playground.Models;
 using Microsoft.Extensions.Logging;
 using Spectre.Console;
 using System.Text.RegularExpressions;
-using CoreValidationResult = ETLFramework.Core.Models.ValidationResult;
 
 namespace ETLFramework.Playground.Playgrounds;
 

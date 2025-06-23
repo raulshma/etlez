@@ -11,7 +11,8 @@ namespace ETLFramework.Pipeline;
 public abstract class PipelineStage : IPipelineStage
 {
     private readonly ILogger _logger;
-    private StageStatus _status;
+    private readonly object _statusLock = new object();
+    private volatile StageStatus _status;
 
     /// <summary>
     /// Initializes a new instance of the PipelineStage class.
@@ -52,7 +53,16 @@ public abstract class PipelineStage : IPipelineStage
     public StageType StageType { get; }
 
     /// <inheritdoc />
-    public StageStatus Status => _status;
+    public StageStatus Status
+    {
+        get
+        {
+            lock (_statusLock)
+            {
+                return _status;
+            }
+        }
+    }
 
     /// <inheritdoc />
     public int Order { get; set; }
@@ -77,7 +87,7 @@ public abstract class PipelineStage : IPipelineStage
         try
         {
             _logger.LogInformation("Starting stage execution: {StageName} (Type: {StageType})", Name, StageType);
-            _status = StageStatus.Running;
+            SetStatus(StageStatus.Running);
 
             // Validate stage before execution
             var validationResult = await ValidateAsync();
@@ -90,21 +100,21 @@ public abstract class PipelineStage : IPipelineStage
             // Execute the stage-specific logic
             result.RecordsProcessed = await ExecuteStageAsync(context, cancellationToken);
             result.IsSuccess = true;
-            _status = StageStatus.Completed;
+            SetStatus(StageStatus.Completed);
 
             _logger.LogInformation("Stage execution completed: {StageName} - Records processed: {RecordsProcessed}",
                 Name, result.RecordsProcessed);
         }
         catch (OperationCanceledException)
         {
-            _status = StageStatus.Cancelled;
+            SetStatus(StageStatus.Cancelled);
             result.IsSuccess = false;
             _logger.LogWarning("Stage execution was cancelled: {StageName}", Name);
             throw;
         }
         catch (Exception ex)
         {
-            _status = StageStatus.Failed;
+            SetStatus(StageStatus.Failed);
             result.IsSuccess = false;
 
             _logger.LogError(ex, "Stage execution failed: {StageName}", Name);
@@ -237,12 +247,24 @@ public abstract class PipelineStage : IPipelineStage
     }
 
     /// <summary>
+    /// Thread-safe method to set the stage status.
+    /// </summary>
+    /// <param name="status">The new status</param>
+    private void SetStatus(StageStatus status)
+    {
+        lock (_statusLock)
+        {
+            _status = status;
+        }
+    }
+
+    /// <summary>
     /// Returns a string representation of the stage.
     /// </summary>
     /// <returns>String representation</returns>
     public override string ToString()
     {
-        return $"Stage[{Name}, Type={StageType}, Order={Order}, Status={_status}]";
+        return $"Stage[{Name}, Type={StageType}, Order={Order}, Status={Status}]";
     }
 }
 

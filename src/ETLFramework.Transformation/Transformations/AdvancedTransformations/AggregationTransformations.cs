@@ -88,7 +88,7 @@ public abstract class BaseAggregationTransformation : ITransformation
     }
 
     /// <inheritdoc />
-    public async Task<Core.Models.TransformationResult> TransformAsync(DataRecord record, ITransformationContext context, CancellationToken cancellationToken = default)
+    public async Task<TransformationResult> TransformAsync(DataRecord record, ITransformationContext context, CancellationToken cancellationToken = default)
     {
         var startTime = DateTimeOffset.UtcNow;
 
