@@ -2,6 +2,7 @@ using System.Text.RegularExpressions;
 using ETLFramework.Core.Models;
 using ETLFramework.Transformation.Interfaces;
 using ETLFramework.Transformation.Helpers;
+using ETLFramework.Core.Interfaces;
 
 namespace ETLFramework.Transformation.Transformations.FieldTransformations;
 
@@ -44,7 +45,7 @@ public abstract class BaseStringTransformation : IFieldTransformation
     public string TargetField { get; }
 
     /// <inheritdoc />
-    public virtual ValidationResult Validate(Interfaces.ITransformationContext context)
+    public virtual ValidationResult Validate(ITransformationContext context)
     {
         var result = new ValidationResult { IsValid = true };
 
@@ -58,7 +59,7 @@ public abstract class BaseStringTransformation : IFieldTransformation
     }
 
     /// <inheritdoc />
-    public async Task<Core.Models.TransformationResult> TransformAsync(DataRecord record, Interfaces.ITransformationContext context, CancellationToken cancellationToken = default)
+    public async Task<Core.Models.TransformationResult> TransformAsync(DataRecord record, ITransformationContext context, CancellationToken cancellationToken = default)
     {
         var startTime = DateTimeOffset.UtcNow;
         
@@ -84,7 +85,7 @@ public abstract class BaseStringTransformation : IFieldTransformation
     }
 
     /// <inheritdoc />
-    public async Task<IEnumerable<Core.Models.TransformationResult>> TransformBatchAsync(IEnumerable<DataRecord> records, Interfaces.ITransformationContext context, CancellationToken cancellationToken = default)
+    public async Task<IEnumerable<Core.Models.TransformationResult>> TransformBatchAsync(IEnumerable<DataRecord> records, ITransformationContext context, CancellationToken cancellationToken = default)
     {
         var results = new List<TransformationResult>();
         
@@ -98,7 +99,7 @@ public abstract class BaseStringTransformation : IFieldTransformation
     }
 
     /// <inheritdoc />
-    public abstract Task<object?> TransformFieldAsync(object? value, Interfaces.ITransformationContext context, CancellationToken cancellationToken = default);
+    public abstract Task<object?> TransformFieldAsync(object? value, ITransformationContext context, CancellationToken cancellationToken = default);
 
     /// <inheritdoc />
     public TransformationMetadata GetMetadata()
@@ -147,7 +148,7 @@ public class UppercaseTransformation : BaseStringTransformation
     public override string Description => "Converts text to uppercase";
 
     /// <inheritdoc />
-    public override Task<object?> TransformFieldAsync(object? value, Interfaces.ITransformationContext context, CancellationToken cancellationToken = default)
+    public override Task<object?> TransformFieldAsync(object? value, ITransformationContext context, CancellationToken cancellationToken = default)
     {
         if (value == null)
             return Task.FromResult<object?>(null);
@@ -179,7 +180,7 @@ public class LowercaseTransformation : BaseStringTransformation
     public override string Description => "Converts text to lowercase";
 
     /// <inheritdoc />
-    public override Task<object?> TransformFieldAsync(object? value, Interfaces.ITransformationContext context, CancellationToken cancellationToken = default)
+    public override Task<object?> TransformFieldAsync(object? value, ITransformationContext context, CancellationToken cancellationToken = default)
     {
         if (value == null)
             return Task.FromResult<object?>(null);
@@ -211,7 +212,7 @@ public class TrimTransformation : BaseStringTransformation
     public override string Description => "Removes leading and trailing whitespace";
 
     /// <inheritdoc />
-    public override Task<object?> TransformFieldAsync(object? value, Interfaces.ITransformationContext context, CancellationToken cancellationToken = default)
+    public override Task<object?> TransformFieldAsync(object? value, ITransformationContext context, CancellationToken cancellationToken = default)
     {
         if (value == null)
             return Task.FromResult<object?>(null);
@@ -252,7 +253,7 @@ public class RegexReplaceTransformation : BaseStringTransformation
     public override string Description => $"Replaces text matching pattern '{_pattern}' with '{_replacement}'";
 
     /// <inheritdoc />
-    public override Task<object?> TransformFieldAsync(object? value, Interfaces.ITransformationContext context, CancellationToken cancellationToken = default)
+    public override Task<object?> TransformFieldAsync(object? value, ITransformationContext context, CancellationToken cancellationToken = default)
     {
         if (value == null)
             return Task.FromResult<object?>(null);
@@ -266,7 +267,7 @@ public class RegexReplaceTransformation : BaseStringTransformation
     }
 
     /// <inheritdoc />
-    public override ValidationResult Validate(Interfaces.ITransformationContext context)
+    public override ValidationResult Validate(ITransformationContext context)
     {
         var result = base.Validate(context);
 
@@ -334,7 +335,7 @@ public class ConcatenateTransformation : IFieldTransformation
     public string TargetField { get; }
 
     /// <inheritdoc />
-    public ValidationResult Validate(Interfaces.ITransformationContext context)
+    public ValidationResult Validate(ITransformationContext context)
     {
         var result = new ValidationResult { IsValid = true };
 
@@ -348,7 +349,7 @@ public class ConcatenateTransformation : IFieldTransformation
     }
 
     /// <inheritdoc />
-    public Task<TransformationResult> TransformAsync(DataRecord record, Interfaces.ITransformationContext context, CancellationToken cancellationToken = default)
+    public Task<TransformationResult> TransformAsync(DataRecord record, ITransformationContext context, CancellationToken cancellationToken = default)
     {
         var startTime = DateTimeOffset.UtcNow;
 
@@ -374,7 +375,7 @@ public class ConcatenateTransformation : IFieldTransformation
     }
 
     /// <inheritdoc />
-    public async Task<IEnumerable<TransformationResult>> TransformBatchAsync(IEnumerable<DataRecord> records, Interfaces.ITransformationContext context, CancellationToken cancellationToken = default)
+    public async Task<IEnumerable<TransformationResult>> TransformBatchAsync(IEnumerable<DataRecord> records, ITransformationContext context, CancellationToken cancellationToken = default)
     {
         var results = new List<TransformationResult>();
         
@@ -388,7 +389,7 @@ public class ConcatenateTransformation : IFieldTransformation
     }
 
     /// <inheritdoc />
-    public Task<object?> TransformFieldAsync(object? value, Interfaces.ITransformationContext context, CancellationToken cancellationToken = default)
+    public Task<object?> TransformFieldAsync(object? value, ITransformationContext context, CancellationToken cancellationToken = default)
     {
         // This method is not used for concatenation as it works with multiple fields
         throw new NotSupportedException("Use TransformAsync for concatenation transformation");

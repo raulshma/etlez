@@ -12,7 +12,7 @@ namespace ETLFramework.Messaging.Brokers;
 /// <summary>
 /// RabbitMQ message broker implementation.
 /// </summary>
-public class RabbitMQBroker : IMessageBroker
+public class RabbitMQBroker : IMessageBroker, IDisposable
 {
     private readonly ILogger<RabbitMQBroker> _logger;
     private readonly RabbitMQConfiguration _config;

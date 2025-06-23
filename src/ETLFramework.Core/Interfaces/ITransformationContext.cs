@@ -1,6 +1,6 @@
 using ETLFramework.Core.Models;
 
-namespace ETLFramework.Transformation.Interfaces;
+namespace ETLFramework.Core.Interfaces;
 
 /// <summary>
 /// Interface for transformation context that maintains state and metadata during transformations.
@@ -243,19 +243,37 @@ public class TransformationStatistics
 }
 
 /// <summary>
-/// Represents a transformation error.
+/// Represents a transformation error that extends the base execution error with transformation-specific information.
 /// </summary>
-public class TransformationError
+public class TransformationError : Models.ExecutionError
 {
     /// <summary>
-    /// Gets or sets the error message.
+    /// Initializes a new instance of the TransformationError class.
     /// </summary>
-    public string Message { get; set; } = string.Empty;
+    public TransformationError()
+    {
+        ErrorCode = "TRANSFORMATION_ERROR";
+        Source = "Transformation";
+    }
 
     /// <summary>
-    /// Gets or sets the exception that caused the error.
+    /// Initializes a new instance of the TransformationError class with a message.
     /// </summary>
-    public Exception? Exception { get; set; }
+    /// <param name="message">The error message</param>
+    public TransformationError(string message) : this()
+    {
+        Message = message;
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the TransformationError class with a message and exception.
+    /// </summary>
+    /// <param name="message">The error message</param>
+    /// <param name="exception">The exception that caused the error</param>
+    public TransformationError(string message, Exception exception) : this(message)
+    {
+        Exception = exception;
+    }
 
     /// <summary>
     /// Gets or sets the record index where the error occurred.
@@ -271,32 +289,30 @@ public class TransformationError
     /// Gets or sets the transformation ID that caused the error.
     /// </summary>
     public string? TransformationId { get; set; }
-
-    /// <summary>
-    /// Gets or sets the timestamp when the error occurred.
-    /// </summary>
-    public DateTimeOffset Timestamp { get; set; } = DateTimeOffset.UtcNow;
-
-    /// <summary>
-    /// Gets or sets the error severity.
-    /// </summary>
-    public ErrorSeverity Severity { get; set; } = ErrorSeverity.Error;
-
-    /// <summary>
-    /// Gets or sets additional error context.
-    /// </summary>
-    public Dictionary<string, object> Context { get; set; } = new Dictionary<string, object>();
 }
 
 /// <summary>
-/// Represents a transformation warning.
+/// Represents a transformation warning that extends the base execution warning with transformation-specific information.
 /// </summary>
-public class TransformationWarning
+public class TransformationWarning : Models.ExecutionWarning
 {
     /// <summary>
-    /// Gets or sets the warning message.
+    /// Initializes a new instance of the TransformationWarning class.
     /// </summary>
-    public string Message { get; set; } = string.Empty;
+    public TransformationWarning()
+    {
+        WarningCode = "TRANSFORMATION_WARNING";
+        Source = "Transformation";
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the TransformationWarning class with a message.
+    /// </summary>
+    /// <param name="message">The warning message</param>
+    public TransformationWarning(string message) : this()
+    {
+        Message = message;
+    }
 
     /// <summary>
     /// Gets or sets the record index where the warning occurred.
@@ -312,40 +328,6 @@ public class TransformationWarning
     /// Gets or sets the transformation ID that caused the warning.
     /// </summary>
     public string? TransformationId { get; set; }
-
-    /// <summary>
-    /// Gets or sets the timestamp when the warning occurred.
-    /// </summary>
-    public DateTimeOffset Timestamp { get; set; } = DateTimeOffset.UtcNow;
-
-    /// <summary>
-    /// Gets or sets additional warning context.
-    /// </summary>
-    public Dictionary<string, object> Context { get; set; } = new Dictionary<string, object>();
 }
 
-/// <summary>
-/// Represents the severity of an error.
-/// </summary>
-public enum ErrorSeverity
-{
-    /// <summary>
-    /// Information level.
-    /// </summary>
-    Information,
 
-    /// <summary>
-    /// Warning level.
-    /// </summary>
-    Warning,
-
-    /// <summary>
-    /// Error level.
-    /// </summary>
-    Error,
-
-    /// <summary>
-    /// Critical error level.
-    /// </summary>
-    Critical
-}

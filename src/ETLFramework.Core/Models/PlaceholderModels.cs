@@ -64,15 +64,6 @@ public class TransformationResult
 }
 
 /// <summary>
-/// Placeholder for transformation context.
-/// </summary>
-public interface ITransformationContext
-{
-    Guid ExecutionId { get; }
-    IDictionary<string, object> Properties { get; }
-}
-
-/// <summary>
 /// Placeholder for transformation rule configuration.
 /// </summary>
 public interface ITransformationRuleConfiguration

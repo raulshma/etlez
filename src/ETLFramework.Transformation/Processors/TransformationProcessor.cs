@@ -4,6 +4,7 @@ using ETLFramework.Core.Models;
 using ETLFramework.Transformation.Interfaces;
 using ETLFramework.Transformation.Helpers;
 using Microsoft.Extensions.Logging;
+using ETLFramework.Core.Interfaces;
 
 namespace ETLFramework.Transformation.Processors;
 
@@ -39,7 +40,7 @@ public class TransformationProcessor : ITransformationProcessor
     public async Task<IEnumerable<TransformationResult>> ProcessRecordAsync(
         DataRecord record, 
         IEnumerable<ITransformation> transformations, 
-        Interfaces.ITransformationContext context, 
+        ITransformationContext context, 
         CancellationToken cancellationToken = default)
     {
         var stopwatch = Stopwatch.StartNew();
@@ -137,7 +138,7 @@ public class TransformationProcessor : ITransformationProcessor
     public async Task<IEnumerable<TransformationResult>> ProcessRecordsAsync(
         IEnumerable<DataRecord> records, 
         IEnumerable<ITransformation> transformations, 
-        Interfaces.ITransformationContext context, 
+        ITransformationContext context, 
         CancellationToken cancellationToken = default)
     {
         var recordList = records.ToList();
@@ -160,7 +161,7 @@ public class TransformationProcessor : ITransformationProcessor
     public async Task<IEnumerable<TransformationResult>> ProcessWithRulesAsync(
         IEnumerable<DataRecord> records, 
         ITransformationRuleSet ruleSet, 
-        Interfaces.ITransformationContext context, 
+        ITransformationContext context, 
         CancellationToken cancellationToken = default)
     {
         var recordList = records.ToList();
@@ -196,7 +197,7 @@ public class TransformationProcessor : ITransformationProcessor
     }
 
     /// <inheritdoc />
-    public ValidationResult ValidateTransformations(IEnumerable<ITransformation> transformations, Interfaces.ITransformationContext context)
+    public ValidationResult ValidateTransformations(IEnumerable<ITransformation> transformations, ITransformationContext context)
     {
         var result = new ValidationResult { IsValid = true };
         var transformationList = transformations.ToList();
@@ -274,7 +275,7 @@ public class TransformationProcessor : ITransformationProcessor
     private async Task<IEnumerable<TransformationResult>> ProcessRecordsSequentialAsync(
         IList<DataRecord> records, 
         IList<ITransformation> transformations, 
-        Interfaces.ITransformationContext context, 
+        ITransformationContext context, 
         CancellationToken cancellationToken)
     {
         var results = new List<TransformationResult>();
@@ -297,7 +298,7 @@ public class TransformationProcessor : ITransformationProcessor
     private async Task<IEnumerable<TransformationResult>> ProcessRecordsParallelAsync(
         IList<DataRecord> records, 
         IList<ITransformation> transformations, 
-        Interfaces.ITransformationContext context, 
+        ITransformationContext context, 
         CancellationToken cancellationToken)
     {
         var parallelOptions = new ParallelOptions

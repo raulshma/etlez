@@ -1,4 +1,4 @@
-using ETLFramework.Transformation.Interfaces;
+using ETLFramework.Core.Interfaces;
 
 namespace ETLFramework.Transformation.Helpers;
 
@@ -14,9 +14,9 @@ public static class TransformationContextExtensions
     /// <param name="recordsTransformed">Number of records transformed</param>
     /// <param name="fieldsTransformed">Number of fields transformed</param>
     /// <param name="processingTime">Processing time</param>
-    public static void UpdateStatistics(this Interfaces.ITransformationContext context, 
-        long recordsTransformed = 0, 
-        long fieldsTransformed = 0, 
+    public static void UpdateStatistics(this ITransformationContext context,
+        long recordsTransformed = 0,
+        long fieldsTransformed = 0,
         TimeSpan? processingTime = null)
     {
         // If the context is our implementation, call the method directly
@@ -43,7 +43,7 @@ public static class TransformationContextExtensions
     /// Marks a record as skipped (extension method for compatibility).
     /// </summary>
     /// <param name="context">The transformation context</param>
-    public static void SkipRecord(this Interfaces.ITransformationContext context)
+    public static void SkipRecord(this ITransformationContext context)
     {
         // If the context is our implementation, call the method directly
         if (context is Models.TransformationContext transformationContext)
@@ -62,7 +62,7 @@ public static class TransformationContextExtensions
     /// </summary>
     /// <param name="context">The transformation context</param>
     /// <returns>Progress percentage (0-100)</returns>
-    public static double GetProgressPercentage(this Interfaces.ITransformationContext context)
+    public static double GetProgressPercentage(this ITransformationContext context)
     {
         // If the context is our implementation, call the method directly
         if (context is Models.TransformationContext transformationContext)
@@ -85,7 +85,7 @@ public static class TransformationContextExtensions
     /// </summary>
     /// <param name="context">The transformation context</param>
     /// <returns>Estimated time remaining</returns>
-    public static TimeSpan? GetEstimatedTimeRemaining(this Interfaces.ITransformationContext context)
+    public static TimeSpan? GetEstimatedTimeRemaining(this ITransformationContext context)
     {
         // If the context is our implementation, call the method directly
         if (context is Models.TransformationContext transformationContext)
@@ -111,7 +111,7 @@ public static class TransformationContextExtensions
     /// </summary>
     /// <param name="context">The transformation context</param>
     /// <param name="totalRecords">The total records count</param>
-    public static void SetTotalRecords(this Interfaces.ITransformationContext context, long totalRecords)
+    public static void SetTotalRecords(this ITransformationContext context, long totalRecords)
     {
         // If the context is our implementation, set the property directly
         if (context is Models.TransformationContext transformationContext)
@@ -130,7 +130,7 @@ public static class TransformationContextExtensions
     /// </summary>
     /// <param name="context">The transformation context</param>
     /// <returns>The total records count</returns>
-    public static long? GetTotalRecords(this Interfaces.ITransformationContext context)
+    public static long? GetTotalRecords(this ITransformationContext context)
     {
         // If the context is our implementation, get the property directly
         if (context is Models.TransformationContext transformationContext)

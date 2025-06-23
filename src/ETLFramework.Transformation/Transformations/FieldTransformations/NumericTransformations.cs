@@ -2,6 +2,7 @@ using System.Globalization;
 using ETLFramework.Core.Models;
 using ETLFramework.Transformation.Interfaces;
 using ETLFramework.Transformation.Helpers;
+using ETLFramework.Core.Interfaces;
 
 namespace ETLFramework.Transformation.Transformations.FieldTransformations;
 
@@ -44,7 +45,7 @@ public abstract class BaseNumericTransformation : IFieldTransformation
     public string TargetField { get; }
 
     /// <inheritdoc />
-    public virtual ValidationResult Validate(Interfaces.ITransformationContext context)
+    public virtual ValidationResult Validate(ITransformationContext context)
     {
         var result = new ValidationResult { IsValid = true };
 
@@ -58,7 +59,7 @@ public abstract class BaseNumericTransformation : IFieldTransformation
     }
 
     /// <inheritdoc />
-    public async Task<Core.Models.TransformationResult> TransformAsync(DataRecord record, Interfaces.ITransformationContext context, CancellationToken cancellationToken = default)
+    public async Task<Core.Models.TransformationResult> TransformAsync(DataRecord record, ITransformationContext context, CancellationToken cancellationToken = default)
     {
         var startTime = DateTimeOffset.UtcNow;
         
@@ -84,7 +85,7 @@ public abstract class BaseNumericTransformation : IFieldTransformation
     }
 
     /// <inheritdoc />
-    public async Task<IEnumerable<Core.Models.TransformationResult>> TransformBatchAsync(IEnumerable<DataRecord> records, Interfaces.ITransformationContext context, CancellationToken cancellationToken = default)
+    public async Task<IEnumerable<Core.Models.TransformationResult>> TransformBatchAsync(IEnumerable<DataRecord> records, ITransformationContext context, CancellationToken cancellationToken = default)
     {
         var results = new List<TransformationResult>();
         
@@ -98,7 +99,7 @@ public abstract class BaseNumericTransformation : IFieldTransformation
     }
 
     /// <inheritdoc />
-    public abstract Task<object?> TransformFieldAsync(object? value, Interfaces.ITransformationContext context, CancellationToken cancellationToken = default);
+    public abstract Task<object?> TransformFieldAsync(object? value, ITransformationContext context, CancellationToken cancellationToken = default);
 
     /// <inheritdoc />
     public TransformationMetadata GetMetadata()
@@ -189,7 +190,7 @@ public class RoundTransformation : BaseNumericTransformation
     public override string Description => $"Rounds numeric values to {_decimals} decimal places";
 
     /// <inheritdoc />
-    public override Task<object?> TransformFieldAsync(object? value, Interfaces.ITransformationContext context, CancellationToken cancellationToken = default)
+    public override Task<object?> TransformFieldAsync(object? value, ITransformationContext context, CancellationToken cancellationToken = default)
     {
         var decimalValue = ToDecimal(value);
         if (decimalValue == null)
@@ -226,7 +227,7 @@ public class AddTransformation : BaseNumericTransformation
     public override string Description => $"Adds {_addend} to numeric values";
 
     /// <inheritdoc />
-    public override Task<object?> TransformFieldAsync(object? value, Interfaces.ITransformationContext context, CancellationToken cancellationToken = default)
+    public override Task<object?> TransformFieldAsync(object? value, ITransformationContext context, CancellationToken cancellationToken = default)
     {
         var decimalValue = ToDecimal(value);
         if (decimalValue == null)
@@ -263,7 +264,7 @@ public class MultiplyTransformation : BaseNumericTransformation
     public override string Description => $"Multiplies numeric values by {_multiplier}";
 
     /// <inheritdoc />
-    public override Task<object?> TransformFieldAsync(object? value, Interfaces.ITransformationContext context, CancellationToken cancellationToken = default)
+    public override Task<object?> TransformFieldAsync(object? value, ITransformationContext context, CancellationToken cancellationToken = default)
     {
         var decimalValue = ToDecimal(value);
         if (decimalValue == null)
@@ -300,7 +301,7 @@ public class FormatNumberTransformation : BaseNumericTransformation
     public override string Description => $"Formats numeric values using format '{_format}'";
 
     /// <inheritdoc />
-    public override Task<object?> TransformFieldAsync(object? value, Interfaces.ITransformationContext context, CancellationToken cancellationToken = default)
+    public override Task<object?> TransformFieldAsync(object? value, ITransformationContext context, CancellationToken cancellationToken = default)
     {
         var decimalValue = ToDecimal(value);
         if (decimalValue == null)
@@ -319,7 +320,7 @@ public class FormatNumberTransformation : BaseNumericTransformation
     }
 
     /// <inheritdoc />
-    public override ValidationResult Validate(Interfaces.ITransformationContext context)
+    public override ValidationResult Validate(ITransformationContext context)
     {
         var result = base.Validate(context);
 
@@ -352,7 +353,7 @@ public class AbsoluteValueTransformation : BaseNumericTransformation
     public override string Description => "Calculates the absolute value of numeric fields";
 
     /// <inheritdoc />
-    public override Task<object?> TransformFieldAsync(object? value, Interfaces.ITransformationContext context, CancellationToken cancellationToken = default)
+    public override Task<object?> TransformFieldAsync(object? value, ITransformationContext context, CancellationToken cancellationToken = default)
     {
         var decimalValue = ToDecimal(value);
         if (decimalValue == null)
@@ -411,7 +412,7 @@ public class CalculateTransformation : IFieldTransformation
     public string TargetField { get; }
 
     /// <inheritdoc />
-    public ValidationResult Validate(Interfaces.ITransformationContext context)
+    public ValidationResult Validate(ITransformationContext context)
     {
         var result = new ValidationResult { IsValid = true };
 
@@ -428,7 +429,7 @@ public class CalculateTransformation : IFieldTransformation
     }
 
     /// <inheritdoc />
-    public Task<TransformationResult> TransformAsync(DataRecord record, Interfaces.ITransformationContext context, CancellationToken cancellationToken = default)
+    public Task<TransformationResult> TransformAsync(DataRecord record, ITransformationContext context, CancellationToken cancellationToken = default)
     {
         var startTime = DateTimeOffset.UtcNow;
 
@@ -471,7 +472,7 @@ public class CalculateTransformation : IFieldTransformation
     }
 
     /// <inheritdoc />
-    public async Task<IEnumerable<TransformationResult>> TransformBatchAsync(IEnumerable<DataRecord> records, Interfaces.ITransformationContext context, CancellationToken cancellationToken = default)
+    public async Task<IEnumerable<TransformationResult>> TransformBatchAsync(IEnumerable<DataRecord> records, ITransformationContext context, CancellationToken cancellationToken = default)
     {
         var results = new List<TransformationResult>();
         
@@ -485,7 +486,7 @@ public class CalculateTransformation : IFieldTransformation
     }
 
     /// <inheritdoc />
-    public Task<object?> TransformFieldAsync(object? value, Interfaces.ITransformationContext context, CancellationToken cancellationToken = default)
+    public Task<object?> TransformFieldAsync(object? value, ITransformationContext context, CancellationToken cancellationToken = default)
     {
         throw new NotSupportedException("Use TransformAsync for calculation transformation");
     }

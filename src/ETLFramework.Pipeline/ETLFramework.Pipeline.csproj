@@ -2,6 +2,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\ETLFramework.Core\ETLFramework.Core.csproj" />
+    <ProjectReference Include="..\ETLFramework.Configuration\ETLFramework.Configuration.csproj" />
   </ItemGroup>
 
   <ItemGroup>

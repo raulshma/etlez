@@ -2,6 +2,7 @@ using System.Globalization;
 using ETLFramework.Core.Models;
 using ETLFramework.Transformation.Interfaces;
 using ETLFramework.Transformation.Helpers;
+using ETLFramework.Core.Interfaces;
 
 namespace ETLFramework.Transformation.Transformations.AdvancedTransformations;
 
@@ -51,7 +52,7 @@ public abstract class BaseDateTimeTransformation : ITransformation
     public string TargetField { get; }
 
     /// <inheritdoc />
-    public virtual ValidationResult Validate(ETLFramework.Transformation.Interfaces.ITransformationContext context)
+    public virtual ValidationResult Validate(ITransformationContext context)
     {
         var result = new ValidationResult { IsValid = true };
 
@@ -83,7 +84,7 @@ public abstract class BaseDateTimeTransformation : ITransformation
     }
 
     /// <inheritdoc />
-    public async Task<Core.Models.TransformationResult> TransformAsync(DataRecord record, ETLFramework.Transformation.Interfaces.ITransformationContext context, CancellationToken cancellationToken = default)
+    public async Task<Core.Models.TransformationResult> TransformAsync(DataRecord record, ITransformationContext context, CancellationToken cancellationToken = default)
     {
         var startTime = DateTimeOffset.UtcNow;
 
@@ -114,7 +115,7 @@ public abstract class BaseDateTimeTransformation : ITransformation
     }
 
     /// <inheritdoc />
-    public async Task<IEnumerable<Core.Models.TransformationResult>> TransformBatchAsync(IEnumerable<DataRecord> records, ETLFramework.Transformation.Interfaces.ITransformationContext context, CancellationToken cancellationToken = default)
+    public async Task<IEnumerable<Core.Models.TransformationResult>> TransformBatchAsync(IEnumerable<DataRecord> records, ITransformationContext context, CancellationToken cancellationToken = default)
     {
         var results = new List<Core.Models.TransformationResult>();
 
@@ -135,7 +136,7 @@ public abstract class BaseDateTimeTransformation : ITransformation
     /// <param name="context">The transformation context</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>The transformed value</returns>
-    protected abstract Task<object?> TransformDateTimeAsync(DateTime dateTime, DataRecord record, ETLFramework.Transformation.Interfaces.ITransformationContext context, CancellationToken cancellationToken);
+    protected abstract Task<object?> TransformDateTimeAsync(DateTime dateTime, DataRecord record, ITransformationContext context, CancellationToken cancellationToken);
 
     /// <summary>
     /// Converts a value to DateTime.
@@ -175,7 +176,7 @@ public class DateTimeFormatTransformation : BaseDateTimeTransformation
     }
 
     /// <inheritdoc />
-    protected override Task<object?> TransformDateTimeAsync(DateTime dateTime, DataRecord record, ETLFramework.Transformation.Interfaces.ITransformationContext context, CancellationToken cancellationToken)
+    protected override Task<object?> TransformDateTimeAsync(DateTime dateTime, DataRecord record, ITransformationContext context, CancellationToken cancellationToken)
     {
         var formatted = dateTime.ToString(_format, _culture);
         return Task.FromResult<object?>(formatted);
@@ -202,7 +203,7 @@ public class DateTimeAddTransformation : BaseDateTimeTransformation
     }
 
     /// <inheritdoc />
-    protected override Task<object?> TransformDateTimeAsync(DateTime dateTime, DataRecord record, ETLFramework.Transformation.Interfaces.ITransformationContext context, CancellationToken cancellationToken)
+    protected override Task<object?> TransformDateTimeAsync(DateTime dateTime, DataRecord record, ITransformationContext context, CancellationToken cancellationToken)
     {
         var result = dateTime.Add(_timeToAdd);
         return Task.FromResult<object?>(result);
@@ -256,7 +257,7 @@ public class DateTimeTimeZoneTransformation : BaseDateTimeTransformation
     }
 
     /// <inheritdoc />
-    protected override Task<object?> TransformDateTimeAsync(DateTime dateTime, DataRecord record, ETLFramework.Transformation.Interfaces.ITransformationContext context, CancellationToken cancellationToken)
+    protected override Task<object?> TransformDateTimeAsync(DateTime dateTime, DataRecord record, ITransformationContext context, CancellationToken cancellationToken)
     {
         var sourceDateTime = TimeZoneInfo.ConvertTimeToUtc(dateTime, _sourceTimeZone);
         var targetDateTime = TimeZoneInfo.ConvertTimeFromUtc(sourceDateTime, _targetTimeZone);
@@ -296,7 +297,7 @@ public class DateTimePartTransformation : BaseDateTimeTransformation
     }
 
     /// <inheritdoc />
-    protected override Task<object?> TransformDateTimeAsync(DateTime dateTime, DataRecord record, ETLFramework.Transformation.Interfaces.ITransformationContext context, CancellationToken cancellationToken)
+    protected override Task<object?> TransformDateTimeAsync(DateTime dateTime, DataRecord record, ITransformationContext context, CancellationToken cancellationToken)
     {
         object result = _part switch
         {

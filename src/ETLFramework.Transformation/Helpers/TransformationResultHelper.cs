@@ -1,4 +1,5 @@
 using ETLFramework.Core.Models;
+using ETLFramework.Core.Interfaces;
 
 namespace ETLFramework.Transformation.Helpers;
 
@@ -46,12 +47,9 @@ public static class TransformationResultHelper
     /// <returns>A failed transformation result</returns>
     public static TransformationResult Failure(string errorMessage, Exception? exception = null)
     {
-        var error = new ExecutionError
-        {
-            Message = errorMessage,
-            Exception = exception,
-            Timestamp = DateTimeOffset.UtcNow
-        };
+        var error = exception != null
+            ? new TransformationError(errorMessage, exception)
+            : new TransformationError(errorMessage);
 
         return new TransformationResult
         {

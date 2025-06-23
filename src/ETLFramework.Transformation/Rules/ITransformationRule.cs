@@ -1,3 +1,4 @@
+using ETLFramework.Core.Interfaces;
 using ETLFramework.Core.Models;
 
 namespace ETLFramework.Transformation.Rules;
@@ -49,7 +50,7 @@ public interface ITransformationRule
     /// <param name="context">The transformation context</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>True if the rule should be applied</returns>
-    Task<bool> EvaluateAsync(DataRecord record, ETLFramework.Transformation.Interfaces.ITransformationContext context, CancellationToken cancellationToken = default);
+    Task<bool> EvaluateAsync(DataRecord record, ITransformationContext context, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Applies this rule to the given record.
@@ -58,14 +59,14 @@ public interface ITransformationRule
     /// <param name="context">The transformation context</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>The transformation result</returns>
-    Task<Core.Models.TransformationResult> ApplyAsync(DataRecord record, ETLFramework.Transformation.Interfaces.ITransformationContext context, CancellationToken cancellationToken = default);
+    Task<Core.Models.TransformationResult> ApplyAsync(DataRecord record, ITransformationContext context, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Validates this rule configuration.
     /// </summary>
     /// <param name="context">The transformation context</param>
     /// <returns>Validation result</returns>
-    ValidationResult Validate(ETLFramework.Transformation.Interfaces.ITransformationContext context);
+    ValidationResult Validate(ITransformationContext context);
 }
 
 /// <summary>
@@ -105,7 +106,7 @@ public interface IRuleCondition
     /// <param name="context">The transformation context</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>True if the condition is met</returns>
-    Task<bool> EvaluateAsync(DataRecord record, ETLFramework.Transformation.Interfaces.ITransformationContext context, CancellationToken cancellationToken = default);
+    Task<bool> EvaluateAsync(DataRecord record, ITransformationContext context, CancellationToken cancellationToken = default);
 }
 
 /// <summary>
@@ -135,7 +136,7 @@ public interface IRuleAction
     /// <param name="context">The transformation context</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>The transformation result</returns>
-    Task<Core.Models.TransformationResult> ExecuteAsync(DataRecord record, ETLFramework.Transformation.Interfaces.ITransformationContext context, CancellationToken cancellationToken = default);
+    Task<Core.Models.TransformationResult> ExecuteAsync(DataRecord record, ITransformationContext context, CancellationToken cancellationToken = default);
 }
 
 /// <summary>

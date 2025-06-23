@@ -1,3 +1,4 @@
+using ETLFramework.Core.Interfaces;
 using ETLFramework.Core.Models;
 
 namespace ETLFramework.Transformation.Interfaces;
@@ -30,7 +31,7 @@ public interface ITransformationProcessor
     /// <param name="context">The transformation context</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>The transformation results</returns>
-    Task<IEnumerable<Core.Models.TransformationResult>> ProcessRecordAsync(
+    Task<IEnumerable<TransformationResult>> ProcessRecordAsync(
         DataRecord record,
         IEnumerable<ITransformation> transformations,
         ITransformationContext context,
@@ -44,7 +45,7 @@ public interface ITransformationProcessor
     /// <param name="context">The transformation context</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>The transformation results</returns>
-    Task<IEnumerable<Core.Models.TransformationResult>> ProcessRecordsAsync(
+    Task<IEnumerable<TransformationResult>> ProcessRecordsAsync(
         IEnumerable<DataRecord> records,
         IEnumerable<ITransformation> transformations,
         ITransformationContext context,
@@ -58,7 +59,7 @@ public interface ITransformationProcessor
     /// <param name="context">The transformation context</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>The transformation results</returns>
-    Task<IEnumerable<Core.Models.TransformationResult>> ProcessWithRulesAsync(
+    Task<IEnumerable<TransformationResult>> ProcessWithRulesAsync(
         IEnumerable<DataRecord> records,
         ITransformationRuleSet ruleSet,
         ITransformationContext context,
@@ -111,7 +112,7 @@ public interface ITransformationPipeline
     /// <param name="context">The transformation context</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>The transformation results</returns>
-    Task<IEnumerable<Core.Models.TransformationResult>> ExecuteAsync(
+    Task<IEnumerable<TransformationResult>> ExecuteAsync(
         IEnumerable<DataRecord> records,
         ITransformationContext context,
         CancellationToken cancellationToken = default);
@@ -171,7 +172,7 @@ public interface ITransformationStage
     /// <param name="context">The transformation context</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>The transformation results</returns>
-    Task<IEnumerable<Core.Models.TransformationResult>> ExecuteAsync(
+    Task<IEnumerable<TransformationResult>> ExecuteAsync(
         IEnumerable<DataRecord> records,
         ITransformationContext context,
         CancellationToken cancellationToken = default);

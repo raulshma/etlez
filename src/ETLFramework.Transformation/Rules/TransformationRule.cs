@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using ETLFramework.Core.Interfaces;
 using ETLFramework.Core.Models;
 using ETLFramework.Transformation.Helpers;
 
@@ -72,7 +73,7 @@ public class TransformationRule : ITransformationRule
     }
 
     /// <inheritdoc />
-    public async Task<bool> EvaluateAsync(DataRecord record, ETLFramework.Transformation.Interfaces.ITransformationContext context, CancellationToken cancellationToken = default)
+    public async Task<bool> EvaluateAsync(DataRecord record, ITransformationContext context, CancellationToken cancellationToken = default)
     {
         if (_conditions.Count == 0) return true; // No conditions means always apply
 
@@ -87,7 +88,7 @@ public class TransformationRule : ITransformationRule
     }
 
     /// <inheritdoc />
-    public async Task<Core.Models.TransformationResult> ApplyAsync(DataRecord record, ETLFramework.Transformation.Interfaces.ITransformationContext context, CancellationToken cancellationToken = default)
+    public async Task<TransformationResult> ApplyAsync(DataRecord record, ITransformationContext context, CancellationToken cancellationToken = default)
     {
         var currentRecord = record.Clone();
         var allErrors = new List<ExecutionError>();
@@ -115,11 +116,9 @@ public class TransformationRule : ITransformationRule
             }
             catch (Exception ex)
             {
-                allErrors.Add(new ExecutionError
+                allErrors.Add(new TransformationError($"Action {action.Id} failed: {ex.Message}", ex)
                 {
-                    Message = $"Action {action.Id} failed: {ex.Message}",
-                    Exception = ex,
-                    Timestamp = DateTimeOffset.UtcNow
+                    TransformationId = action.Id
                 });
             }
         }
@@ -133,7 +132,7 @@ public class TransformationRule : ITransformationRule
     }
 
     /// <inheritdoc />
-    public ValidationResult Validate(ETLFramework.Transformation.Interfaces.ITransformationContext context)
+    public ValidationResult Validate(ITransformationContext context)
     {
         var errors = new List<string>();
 
@@ -212,7 +211,7 @@ public class RuleCondition : IRuleCondition
     public object? Value { get; }
 
     /// <inheritdoc />
-    public Task<bool> EvaluateAsync(DataRecord record, ETLFramework.Transformation.Interfaces.ITransformationContext context, CancellationToken cancellationToken = default)
+    public Task<bool> EvaluateAsync(DataRecord record, ITransformationContext context, CancellationToken cancellationToken = default)
     {
         var fieldValue = record.GetField<object>(FieldName);
         var result = EvaluateCondition(fieldValue, Operator, Value);

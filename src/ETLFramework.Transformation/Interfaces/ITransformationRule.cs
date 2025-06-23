@@ -1,3 +1,4 @@
+using ETLFramework.Core.Interfaces;
 using ETLFramework.Core.Models;
 
 namespace ETLFramework.Transformation.Interfaces;
@@ -286,7 +287,7 @@ public interface ITransformationRuleSet
     /// <param name="context">The transformation context</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>The transformation results</returns>
-    Task<IEnumerable<Core.Models.TransformationResult>> ApplyAsync(DataRecord record, ITransformationContext context, CancellationToken cancellationToken = default);
+    Task<IEnumerable<TransformationResult>> ApplyAsync(DataRecord record, ITransformationContext context, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Validates the rule set.

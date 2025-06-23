@@ -1,4 +1,5 @@
 using ETLFramework.Core.Models;
+using ETLFramework.Core.Interfaces;
 
 namespace ETLFramework.Core.Interfaces;
 

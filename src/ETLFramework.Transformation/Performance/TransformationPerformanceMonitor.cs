@@ -6,7 +6,7 @@ namespace ETLFramework.Transformation.Performance;
 /// <summary>
 /// Default implementation of transformation performance monitor.
 /// </summary>
-public class TransformationPerformanceMonitor : ITransformationPerformanceMonitor
+public class TransformationPerformanceMonitor : ITransformationPerformanceMonitor, IDisposable
 {
     private readonly ILogger<TransformationPerformanceMonitor> _logger;
     private readonly ConcurrentDictionary<string, TransformationPerformanceStats> _statistics;
@@ -239,6 +239,16 @@ public class TransformationPerformanceMonitor : ITransformationPerformanceMonito
         return _sessionHistory.TryGetValue(transformationId, out var history)
             ? history.ToList()
             : Enumerable.Empty<SessionStatistics>();
+    }
+
+    /// <summary>
+    /// Disposes the performance monitor and clears all statistics.
+    /// </summary>
+    public void Dispose()
+    {
+        _statistics.Clear();
+        _sessionHistory.Clear();
+        _logger.LogDebug("TransformationPerformanceMonitor disposed and statistics cleared");
     }
 }
 

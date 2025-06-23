@@ -1,3 +1,4 @@
+using ETLFramework.Core.Interfaces;
 using ETLFramework.Core.Models;
 using ETLFramework.Transformation.Helpers;
 using ETLFramework.Transformation.Interfaces;
@@ -33,7 +34,7 @@ public abstract class BaseRuleAction : IRuleAction
     public ActionType ActionType { get; }
 
     /// <inheritdoc />
-    public abstract Task<Core.Models.TransformationResult> ExecuteAsync(DataRecord record, ETLFramework.Transformation.Interfaces.ITransformationContext context, CancellationToken cancellationToken = default);
+    public abstract Task<Core.Models.TransformationResult> ExecuteAsync(DataRecord record, ITransformationContext context, CancellationToken cancellationToken = default);
 }
 
 /// <summary>
@@ -58,7 +59,7 @@ public class SetFieldAction : BaseRuleAction
     }
 
     /// <inheritdoc />
-    public override Task<Core.Models.TransformationResult> ExecuteAsync(DataRecord record, ETLFramework.Transformation.Interfaces.ITransformationContext context, CancellationToken cancellationToken = default)
+    public override Task<Core.Models.TransformationResult> ExecuteAsync(DataRecord record, ITransformationContext context, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -92,7 +93,7 @@ public class RemoveFieldAction : BaseRuleAction
     }
 
     /// <inheritdoc />
-    public override Task<Core.Models.TransformationResult> ExecuteAsync(DataRecord record, ETLFramework.Transformation.Interfaces.ITransformationContext context, CancellationToken cancellationToken = default)
+    public override Task<Core.Models.TransformationResult> ExecuteAsync(DataRecord record, ITransformationContext context, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -129,7 +130,7 @@ public class CopyFieldAction : BaseRuleAction
     }
 
     /// <inheritdoc />
-    public override Task<Core.Models.TransformationResult> ExecuteAsync(DataRecord record, ETLFramework.Transformation.Interfaces.ITransformationContext context, CancellationToken cancellationToken = default)
+    public override Task<Core.Models.TransformationResult> ExecuteAsync(DataRecord record, ITransformationContext context, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -164,7 +165,7 @@ public class TransformFieldAction : BaseRuleAction
     }
 
     /// <inheritdoc />
-    public override async Task<Core.Models.TransformationResult> ExecuteAsync(DataRecord record, ETLFramework.Transformation.Interfaces.ITransformationContext context, CancellationToken cancellationToken = default)
+    public override async Task<Core.Models.TransformationResult> ExecuteAsync(DataRecord record, ITransformationContext context, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -196,7 +197,7 @@ public class SkipRecordAction : BaseRuleAction
     }
 
     /// <inheritdoc />
-    public override Task<Core.Models.TransformationResult> ExecuteAsync(DataRecord record, ETLFramework.Transformation.Interfaces.ITransformationContext context, CancellationToken cancellationToken = default)
+    public override Task<Core.Models.TransformationResult> ExecuteAsync(DataRecord record, ITransformationContext context, CancellationToken cancellationToken = default)
     {
         context.SkipRecord();
         return Task.FromResult(TransformationResultHelper.Skipped(record, _reason));
@@ -218,7 +219,7 @@ public class StopProcessingAction : BaseRuleAction
     }
 
     /// <inheritdoc />
-    public override Task<Core.Models.TransformationResult> ExecuteAsync(DataRecord record, ETLFramework.Transformation.Interfaces.ITransformationContext context, CancellationToken cancellationToken = default)
+    public override Task<Core.Models.TransformationResult> ExecuteAsync(DataRecord record, ITransformationContext context, CancellationToken cancellationToken = default)
     {
         // This action doesn't modify the record, it just signals to stop processing
         return Task.FromResult(TransformationResultHelper.Success(record));
@@ -250,7 +251,7 @@ public class LogMessageAction : BaseRuleAction
     }
 
     /// <inheritdoc />
-    public override Task<Core.Models.TransformationResult> ExecuteAsync(DataRecord record, ETLFramework.Transformation.Interfaces.ITransformationContext context, CancellationToken cancellationToken = default)
+    public override Task<Core.Models.TransformationResult> ExecuteAsync(DataRecord record, ITransformationContext context, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -304,7 +305,7 @@ public class LogMessageAction : BaseRuleAction
 /// </summary>
 public class CustomAction : BaseRuleAction
 {
-    private readonly Func<DataRecord, ETLFramework.Transformation.Interfaces.ITransformationContext, CancellationToken, Task<Core.Models.TransformationResult>> _action;
+    private readonly Func<DataRecord, ITransformationContext, CancellationToken, Task<Core.Models.TransformationResult>> _action;
 
     /// <summary>
     /// Initializes a new instance of the CustomAction class.
@@ -312,14 +313,14 @@ public class CustomAction : BaseRuleAction
     /// <param name="id">The action ID</param>
     /// <param name="name">The action name</param>
     /// <param name="action">The custom action function</param>
-    public CustomAction(string id, string name, Func<DataRecord, ETLFramework.Transformation.Interfaces.ITransformationContext, CancellationToken, Task<Core.Models.TransformationResult>> action)
+    public CustomAction(string id, string name, Func<DataRecord, ITransformationContext, CancellationToken, Task<Core.Models.TransformationResult>> action)
         : base(id, name, ActionType.Custom)
     {
         _action = action ?? throw new ArgumentNullException(nameof(action));
     }
 
     /// <inheritdoc />
-    public override async Task<Core.Models.TransformationResult> ExecuteAsync(DataRecord record, ETLFramework.Transformation.Interfaces.ITransformationContext context, CancellationToken cancellationToken = default)
+    public override async Task<Core.Models.TransformationResult> ExecuteAsync(DataRecord record, ITransformationContext context, CancellationToken cancellationToken = default)
     {
         try
         {

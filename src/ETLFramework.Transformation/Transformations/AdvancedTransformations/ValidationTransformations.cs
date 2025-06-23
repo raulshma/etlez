@@ -2,6 +2,7 @@ using System.Text.RegularExpressions;
 using ETLFramework.Core.Models;
 using ETLFramework.Transformation.Interfaces;
 using ETLFramework.Transformation.Helpers;
+using ETLFramework.Core.Interfaces;
 
 namespace ETLFramework.Transformation.Transformations.AdvancedTransformations;
 
@@ -56,7 +57,7 @@ public abstract class BaseValidationTransformation : ITransformation
     public string ErrorMessage { get; set; } = "Validation failed for field '{FieldName}': {ValidationError}";
 
     /// <inheritdoc />
-    public virtual ValidationResult Validate(ETLFramework.Transformation.Interfaces.ITransformationContext context)
+    public virtual ValidationResult Validate(ITransformationContext context)
     {
         var result = new ValidationResult { IsValid = true };
 
@@ -83,7 +84,7 @@ public abstract class BaseValidationTransformation : ITransformation
     }
 
     /// <inheritdoc />
-    public async Task<Core.Models.TransformationResult> TransformAsync(DataRecord record, ETLFramework.Transformation.Interfaces.ITransformationContext context, CancellationToken cancellationToken = default)
+    public async Task<Core.Models.TransformationResult> TransformAsync(DataRecord record, ITransformationContext context, CancellationToken cancellationToken = default)
     {
         var startTime = DateTimeOffset.UtcNow;
 
@@ -139,7 +140,7 @@ public abstract class BaseValidationTransformation : ITransformation
     }
 
     /// <inheritdoc />
-    public async Task<IEnumerable<Core.Models.TransformationResult>> TransformBatchAsync(IEnumerable<DataRecord> records, ETLFramework.Transformation.Interfaces.ITransformationContext context, CancellationToken cancellationToken = default)
+    public async Task<IEnumerable<Core.Models.TransformationResult>> TransformBatchAsync(IEnumerable<DataRecord> records, ITransformationContext context, CancellationToken cancellationToken = default)
     {
         var results = new List<Core.Models.TransformationResult>();
 
@@ -160,7 +161,7 @@ public abstract class BaseValidationTransformation : ITransformation
     /// <param name="context">The transformation context</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>The validation result</returns>
-    protected abstract Task<FieldValidationResult> ValidateValueAsync(object? value, DataRecord record, ETLFramework.Transformation.Interfaces.ITransformationContext context, CancellationToken cancellationToken);
+    protected abstract Task<FieldValidationResult> ValidateValueAsync(object? value, DataRecord record, ITransformationContext context, CancellationToken cancellationToken);
 
     /// <summary>
     /// Gets the default value to use when validation fails and action is SetDefault.
@@ -197,7 +198,7 @@ public class RequiredFieldValidation : BaseValidationTransformation
     }
 
     /// <inheritdoc />
-    protected override Task<FieldValidationResult> ValidateValueAsync(object? value, DataRecord record, ETLFramework.Transformation.Interfaces.ITransformationContext context, CancellationToken cancellationToken)
+    protected override Task<FieldValidationResult> ValidateValueAsync(object? value, DataRecord record, ITransformationContext context, CancellationToken cancellationToken)
     {
         var isValid = value != null && !string.IsNullOrWhiteSpace(value.ToString());
         var errorMessage = isValid ? string.Empty : "Field is required but is null or empty";
@@ -232,7 +233,7 @@ public class RegexValidation : BaseValidationTransformation
     }
 
     /// <inheritdoc />
-    protected override Task<FieldValidationResult> ValidateValueAsync(object? value, DataRecord record, ETLFramework.Transformation.Interfaces.ITransformationContext context, CancellationToken cancellationToken)
+    protected override Task<FieldValidationResult> ValidateValueAsync(object? value, DataRecord record, ITransformationContext context, CancellationToken cancellationToken)
     {
         var stringValue = value?.ToString() ?? string.Empty;
         var isValid = _regex.IsMatch(stringValue);
@@ -293,7 +294,7 @@ public class RangeValidation : BaseValidationTransformation
     }
 
     /// <inheritdoc />
-    protected override Task<FieldValidationResult> ValidateValueAsync(object? value, DataRecord record, ETLFramework.Transformation.Interfaces.ITransformationContext context, CancellationToken cancellationToken)
+    protected override Task<FieldValidationResult> ValidateValueAsync(object? value, DataRecord record, ITransformationContext context, CancellationToken cancellationToken)
     {
         if (value == null)
         {
@@ -347,7 +348,7 @@ public class LengthValidation : BaseValidationTransformation
     }
 
     /// <inheritdoc />
-    protected override Task<FieldValidationResult> ValidateValueAsync(object? value, DataRecord record, ETLFramework.Transformation.Interfaces.ITransformationContext context, CancellationToken cancellationToken)
+    protected override Task<FieldValidationResult> ValidateValueAsync(object? value, DataRecord record, ITransformationContext context, CancellationToken cancellationToken)
     {
         var stringValue = value?.ToString() ?? string.Empty;
         var length = stringValue.Length;

@@ -9,7 +9,7 @@ namespace ETLFramework.Messaging.Brokers;
 /// <summary>
 /// In-memory message broker implementation for testing and development.
 /// </summary>
-public class InMemoryMessageBroker : IMessageBroker
+public class InMemoryMessageBroker : IMessageBroker, IDisposable
 {
     private readonly ILogger<InMemoryMessageBroker> _logger;
     private readonly ConcurrentDictionary<string, List<Subscription>> _subscriptions = new();

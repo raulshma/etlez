@@ -1,4 +1,5 @@
 using ETLFramework.Core.Models;
+using ETLFramework.Core.Interfaces;
 
 namespace ETLFramework.Transformation.Interfaces;
 
@@ -46,7 +47,7 @@ public interface ITransformation
     /// <param name="context">The transformation context</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>The transformation result</returns>
-    Task<Core.Models.TransformationResult> TransformAsync(DataRecord record, ITransformationContext context, CancellationToken cancellationToken = default);
+    Task<TransformationResult> TransformAsync(DataRecord record, ITransformationContext context, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Applies the transformation to multiple data records.
@@ -55,7 +56,7 @@ public interface ITransformation
     /// <param name="context">The transformation context</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>The transformation results</returns>
-    Task<IEnumerable<Core.Models.TransformationResult>> TransformBatchAsync(IEnumerable<DataRecord> records, ITransformationContext context, CancellationToken cancellationToken = default);
+    Task<IEnumerable<TransformationResult>> TransformBatchAsync(IEnumerable<DataRecord> records, ITransformationContext context, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Gets metadata about this transformation.
@@ -144,7 +145,7 @@ public interface IAggregateTransformation : ITransformation
     /// <param name="context">The transformation context</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>The final aggregation results</returns>
-    Task<IEnumerable<Core.Models.TransformationResult>> FinalizeAsync(ITransformationContext context, CancellationToken cancellationToken = default);
+    Task<IEnumerable<TransformationResult>> FinalizeAsync(ITransformationContext context, CancellationToken cancellationToken = default);
 }
 
 /// <summary>

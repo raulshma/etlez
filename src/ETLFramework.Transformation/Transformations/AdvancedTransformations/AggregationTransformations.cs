@@ -1,6 +1,7 @@
 using ETLFramework.Core.Models;
 using ETLFramework.Transformation.Interfaces;
 using ETLFramework.Transformation.Helpers;
+using ETLFramework.Core.Interfaces;
 
 namespace ETLFramework.Transformation.Transformations.AdvancedTransformations;
 
@@ -55,7 +56,7 @@ public abstract class BaseAggregationTransformation : ITransformation
     public bool SkipNullValues { get; set; } = true;
 
     /// <inheritdoc />
-    public virtual ValidationResult Validate(ETLFramework.Transformation.Interfaces.ITransformationContext context)
+    public virtual ValidationResult Validate(ITransformationContext context)
     {
         var result = new ValidationResult { IsValid = true };
 
@@ -87,7 +88,7 @@ public abstract class BaseAggregationTransformation : ITransformation
     }
 
     /// <inheritdoc />
-    public async Task<Core.Models.TransformationResult> TransformAsync(DataRecord record, ETLFramework.Transformation.Interfaces.ITransformationContext context, CancellationToken cancellationToken = default)
+    public async Task<Core.Models.TransformationResult> TransformAsync(DataRecord record, ITransformationContext context, CancellationToken cancellationToken = default)
     {
         var startTime = DateTimeOffset.UtcNow;
 
@@ -120,7 +121,7 @@ public abstract class BaseAggregationTransformation : ITransformation
     }
 
     /// <inheritdoc />
-    public async Task<IEnumerable<Core.Models.TransformationResult>> TransformBatchAsync(IEnumerable<DataRecord> records, ETLFramework.Transformation.Interfaces.ITransformationContext context, CancellationToken cancellationToken = default)
+    public async Task<IEnumerable<Core.Models.TransformationResult>> TransformBatchAsync(IEnumerable<DataRecord> records, ITransformationContext context, CancellationToken cancellationToken = default)
     {
         var results = new List<Core.Models.TransformationResult>();
 
@@ -141,7 +142,7 @@ public abstract class BaseAggregationTransformation : ITransformation
     /// <param name="context">The transformation context</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>The aggregated value</returns>
-    protected abstract Task<object?> AggregateValuesAsync(IEnumerable<object?> values, DataRecord record, ETLFramework.Transformation.Interfaces.ITransformationContext context, CancellationToken cancellationToken);
+    protected abstract Task<object?> AggregateValuesAsync(IEnumerable<object?> values, DataRecord record, ITransformationContext context, CancellationToken cancellationToken);
 
     /// <summary>
     /// Converts values to decimal for numeric operations.
@@ -176,7 +177,7 @@ public class SumAggregationTransformation : BaseAggregationTransformation
     }
 
     /// <inheritdoc />
-    protected override Task<object?> AggregateValuesAsync(IEnumerable<object?> values, DataRecord record, ETLFramework.Transformation.Interfaces.ITransformationContext context, CancellationToken cancellationToken)
+    protected override Task<object?> AggregateValuesAsync(IEnumerable<object?> values, DataRecord record, ITransformationContext context, CancellationToken cancellationToken)
     {
         var numericValues = ConvertToDecimals(values);
         var sum = numericValues.Sum();
@@ -200,7 +201,7 @@ public class AverageAggregationTransformation : BaseAggregationTransformation
     }
 
     /// <inheritdoc />
-    protected override Task<object?> AggregateValuesAsync(IEnumerable<object?> values, DataRecord record, ETLFramework.Transformation.Interfaces.ITransformationContext context, CancellationToken cancellationToken)
+    protected override Task<object?> AggregateValuesAsync(IEnumerable<object?> values, DataRecord record, ITransformationContext context, CancellationToken cancellationToken)
     {
         var numericValues = ConvertToDecimals(values).ToList();
         if (numericValues.Count == 0) return Task.FromResult<object?>(null);
@@ -226,7 +227,7 @@ public class CountAggregationTransformation : BaseAggregationTransformation
     }
 
     /// <inheritdoc />
-    protected override Task<object?> AggregateValuesAsync(IEnumerable<object?> values, DataRecord record, ETLFramework.Transformation.Interfaces.ITransformationContext context, CancellationToken cancellationToken)
+    protected override Task<object?> AggregateValuesAsync(IEnumerable<object?> values, DataRecord record, ITransformationContext context, CancellationToken cancellationToken)
     {
         var count = values.Count();
         return Task.FromResult<object?>(count);
@@ -253,7 +254,7 @@ public class MinMaxAggregationTransformation : BaseAggregationTransformation
     }
 
     /// <inheritdoc />
-    protected override Task<object?> AggregateValuesAsync(IEnumerable<object?> values, DataRecord record, ETLFramework.Transformation.Interfaces.ITransformationContext context, CancellationToken cancellationToken)
+    protected override Task<object?> AggregateValuesAsync(IEnumerable<object?> values, DataRecord record, ITransformationContext context, CancellationToken cancellationToken)
     {
         var numericValues = ConvertToDecimals(values).ToList();
         if (numericValues.Count == 0) return Task.FromResult<object?>(null);
@@ -305,7 +306,7 @@ public class ConcatenationAggregationTransformation : BaseAggregationTransformat
     }
 
     /// <inheritdoc />
-    protected override Task<object?> AggregateValuesAsync(IEnumerable<object?> values, DataRecord record, ETLFramework.Transformation.Interfaces.ITransformationContext context, CancellationToken cancellationToken)
+    protected override Task<object?> AggregateValuesAsync(IEnumerable<object?> values, DataRecord record, ITransformationContext context, CancellationToken cancellationToken)
     {
         var stringValues = values.Where(v => v != null).Select(v => v!.ToString());
         var result = string.Join(_separator, stringValues);
@@ -334,7 +335,7 @@ public class CustomAggregationTransformation : BaseAggregationTransformation
     }
 
     /// <inheritdoc />
-    protected override async Task<object?> AggregateValuesAsync(IEnumerable<object?> values, DataRecord record, ETLFramework.Transformation.Interfaces.ITransformationContext context, CancellationToken cancellationToken)
+    protected override async Task<object?> AggregateValuesAsync(IEnumerable<object?> values, DataRecord record, ITransformationContext context, CancellationToken cancellationToken)
     {
         return await _aggregationFunction(values, record, cancellationToken);
     }

@@ -1,6 +1,7 @@
 using ETLFramework.Core.Models;
 using ETLFramework.Transformation.Interfaces;
 using ETLFramework.Transformation.Helpers;
+using ETLFramework.Core.Interfaces;
 
 namespace ETLFramework.Transformation.Transformations.AdvancedTransformations;
 
@@ -60,7 +61,7 @@ public abstract class BaseLookupTransformation : ITransformation
     public bool FailOnMissingLookup { get; set; } = false;
 
     /// <inheritdoc />
-    public virtual ValidationResult Validate(ETLFramework.Transformation.Interfaces.ITransformationContext context)
+    public virtual ValidationResult Validate(ITransformationContext context)
     {
         var result = new ValidationResult { IsValid = true };
 
@@ -92,7 +93,7 @@ public abstract class BaseLookupTransformation : ITransformation
     }
 
     /// <inheritdoc />
-    public async Task<Core.Models.TransformationResult> TransformAsync(DataRecord record, ETLFramework.Transformation.Interfaces.ITransformationContext context, CancellationToken cancellationToken = default)
+    public async Task<Core.Models.TransformationResult> TransformAsync(DataRecord record, ITransformationContext context, CancellationToken cancellationToken = default)
     {
         var startTime = DateTimeOffset.UtcNow;
 
@@ -134,7 +135,7 @@ public abstract class BaseLookupTransformation : ITransformation
     }
 
     /// <inheritdoc />
-    public async Task<IEnumerable<Core.Models.TransformationResult>> TransformBatchAsync(IEnumerable<DataRecord> records, ETLFramework.Transformation.Interfaces.ITransformationContext context, CancellationToken cancellationToken = default)
+    public async Task<IEnumerable<Core.Models.TransformationResult>> TransformBatchAsync(IEnumerable<DataRecord> records, ITransformationContext context, CancellationToken cancellationToken = default)
     {
         var results = new List<Core.Models.TransformationResult>();
 
@@ -155,7 +156,7 @@ public abstract class BaseLookupTransformation : ITransformation
     /// <param name="context">The transformation context</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>The lookup result</returns>
-    protected abstract Task<LookupResult> PerformLookupAsync(object? lookupValue, DataRecord record, ETLFramework.Transformation.Interfaces.ITransformationContext context, CancellationToken cancellationToken);
+    protected abstract Task<LookupResult> PerformLookupAsync(object? lookupValue, DataRecord record, ITransformationContext context, CancellationToken cancellationToken);
 }
 
 /// <summary>
@@ -178,7 +179,7 @@ public class DictionaryLookupTransformation : BaseLookupTransformation
     }
 
     /// <inheritdoc />
-    protected override Task<LookupResult> PerformLookupAsync(object? lookupValue, DataRecord record, ETLFramework.Transformation.Interfaces.ITransformationContext context, CancellationToken cancellationToken)
+    protected override Task<LookupResult> PerformLookupAsync(object? lookupValue, DataRecord record, ITransformationContext context, CancellationToken cancellationToken)
     {
         if (lookupValue != null && _lookupTable.TryGetValue(lookupValue, out var result))
         {
@@ -222,7 +223,7 @@ public class FunctionLookupTransformation : BaseLookupTransformation
     }
 
     /// <inheritdoc />
-    protected override async Task<LookupResult> PerformLookupAsync(object? lookupValue, DataRecord record, ETLFramework.Transformation.Interfaces.ITransformationContext context, CancellationToken cancellationToken)
+    protected override async Task<LookupResult> PerformLookupAsync(object? lookupValue, DataRecord record, ITransformationContext context, CancellationToken cancellationToken)
     {
         return await _lookupFunction(lookupValue, record, cancellationToken);
     }
@@ -253,7 +254,7 @@ public class CachedLookupTransformation : BaseLookupTransformation
     }
 
     /// <inheritdoc />
-    protected override async Task<LookupResult> PerformLookupAsync(object? lookupValue, DataRecord record, ETLFramework.Transformation.Interfaces.ITransformationContext context, CancellationToken cancellationToken)
+    protected override async Task<LookupResult> PerformLookupAsync(object? lookupValue, DataRecord record, ITransformationContext context, CancellationToken cancellationToken)
     {
         if (lookupValue == null)
         {
@@ -323,7 +324,7 @@ public class MultiFieldLookupTransformation : BaseLookupTransformation
     }
 
     /// <inheritdoc />
-    protected override Task<LookupResult> PerformLookupAsync(object? lookupValue, DataRecord record, ETLFramework.Transformation.Interfaces.ITransformationContext context, CancellationToken cancellationToken)
+    protected override Task<LookupResult> PerformLookupAsync(object? lookupValue, DataRecord record, ITransformationContext context, CancellationToken cancellationToken)
     {
         // Create composite key from multiple fields
         var keyParts = _lookupFields.Select(field => record.GetField<object>(field)?.ToString() ?? "").ToArray();

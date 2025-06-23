@@ -3,6 +3,7 @@ using ETLFramework.Core.Models;
 using ETLFramework.Transformation.Interfaces;
 using ETLFramework.Transformation.Helpers;
 using Microsoft.Extensions.Logging;
+using ETLFramework.Core.Interfaces;
 
 namespace ETLFramework.Transformation.Pipeline;
 
@@ -44,7 +45,7 @@ public class TransformationPipeline : ITransformationPipeline
     /// <inheritdoc />
     public async Task<IEnumerable<TransformationResult>> ExecuteAsync(
         IEnumerable<DataRecord> records, 
-        Interfaces.ITransformationContext context, 
+        ITransformationContext context, 
         CancellationToken cancellationToken = default)
     {
         var stopwatch = Stopwatch.StartNew();
@@ -333,7 +334,7 @@ public class TransformationStage : ITransformationStage
     /// <inheritdoc />
     public async Task<IEnumerable<TransformationResult>> ExecuteAsync(
         IEnumerable<DataRecord> records, 
-        Interfaces.ITransformationContext context, 
+        ITransformationContext context, 
         CancellationToken cancellationToken = default)
     {
         var stopwatch = Stopwatch.StartNew();

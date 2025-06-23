@@ -1,12 +1,12 @@
 using ETLFramework.Core.Models;
-using ETLFramework.Transformation.Interfaces;
+using ETLFramework.Core.Interfaces;
 
 namespace ETLFramework.Transformation.Models;
 
 /// <summary>
 /// Implementation of transformation context that maintains state and metadata during transformations.
 /// </summary>
-public class TransformationContext : Interfaces.ITransformationContext
+public class TransformationContext : ITransformationContext
 {
     private readonly object _lockObject = new object();
     private long _currentRecordIndex;
@@ -213,7 +213,7 @@ public class TransformationContext : Interfaces.ITransformationContext
     }
 
     /// <inheritdoc />
-    public Interfaces.ITransformationContext CreateChildContext(string name)
+    public ITransformationContext CreateChildContext(string name)
     {
         var childContext = new TransformationContext($"{Name}.{name}", CancellationToken)
         {
@@ -236,7 +236,7 @@ public class TransformationContext : Interfaces.ITransformationContext
     }
 
     /// <inheritdoc />
-    public Interfaces.ITransformationContext Clone()
+    public ITransformationContext Clone()
     {
         var clonedContext = new TransformationContext(Name, CancellationToken)
         {

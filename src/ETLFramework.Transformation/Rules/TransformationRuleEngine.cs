@@ -1,3 +1,4 @@
+using ETLFramework.Core.Interfaces;
 using ETLFramework.Core.Models;
 using ETLFramework.Transformation.Helpers;
 using Microsoft.Extensions.Logging;
@@ -74,7 +75,7 @@ public class TransformationRuleEngine
     /// </summary>
     /// <param name="context">The transformation context</param>
     /// <returns>Validation result</returns>
-    public ValidationResult ValidateRules(ETLFramework.Transformation.Interfaces.ITransformationContext context)
+    public ValidationResult ValidateRules(ITransformationContext context)
     {
         var errors = new List<string>();
 
@@ -116,7 +117,7 @@ public class TransformationRuleEngine
     /// <returns>The transformation result</returns>
     public async Task<Core.Models.TransformationResult> ApplyRulesAsync(
         DataRecord record,
-        ETLFramework.Transformation.Interfaces.ITransformationContext context,
+        ITransformationContext context,
         CancellationToken cancellationToken = default)
     {
         if (record == null) throw new ArgumentNullException(nameof(record));
@@ -173,14 +174,12 @@ public class TransformationRuleEngine
                 }
                 catch (Exception ex)
                 {
-                    var error = new ExecutionError
+                    var error = new TransformationError($"Rule {rule.Id} execution failed: {ex.Message}", ex)
                     {
-                        Message = $"Rule {rule.Id} execution failed: {ex.Message}",
-                        Exception = ex,
-                        Timestamp = DateTimeOffset.UtcNow
+                        TransformationId = rule.Id
                     };
                     allErrors.Add(error);
-                    
+
                     _logger.LogError(ex, "Error applying rule {RuleId} ({RuleName})", rule.Id, rule.Name);
                 }
             }
@@ -217,7 +216,7 @@ public class TransformationRuleEngine
     /// <returns>The transformation results</returns>
     public async Task<IEnumerable<Core.Models.TransformationResult>> ApplyRulesBatchAsync(
         IEnumerable<DataRecord> records,
-        ETLFramework.Transformation.Interfaces.ITransformationContext context,
+        ITransformationContext context,
         CancellationToken cancellationToken = default)
     {
         var results = new List<Core.Models.TransformationResult>();
