@@ -1,0 +1,96 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: etl-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: etlframework
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
+    networks:
+      - etl-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d etlframework"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # pgAdmin (Optional - for database management)
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: etl-pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@etlframework.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    ports:
+      - "8080:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    networks:
+      - etl-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # ETL Framework API (Optional - uncomment to run API in Docker)
+  # etl-api:
+  #   build:
+  #     context: .
+  #     dockerfile: src/ETLFramework.API/Dockerfile
+  #   container_name: etl-api
+  #   restart: unless-stopped
+  #   environment:
+  #     ASPNETCORE_ENVIRONMENT: Development
+  #     ASPNETCORE_URLS: http://+:80
+  #     ConnectionStrings__DefaultConnection: "Host=postgres;Database=etlframework;Username=postgres;Password=password;Port=5432"
+  #   ports:
+  #     - "5000:80"
+  #   networks:
+  #     - etl-network
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+
+volumes:
+  postgres_data:
+    driver: local
+  pgadmin_data:
+    driver: local
+
+networks:
+  etl-network:
+    driver: bridge
+
+# Usage Instructions:
+# 
+# 1. Start PostgreSQL and pgAdmin:
+#    docker-compose -f docker-compose.postgresql.yml up -d
+# 
+# 2. Access pgAdmin at http://localhost:8080
+#    Email: admin@etlframework.com
+#    Password: admin
+# 
+# 3. Connect to PostgreSQL from pgAdmin:
+#    Host: postgres
+#    Port: 5432
+#    Database: etlframework
+#    Username: postgres
+#    Password: password
+# 
+# 4. Stop services:
+#    docker-compose -f docker-compose.postgresql.yml down
+# 
+# 5. Remove volumes (WARNING: This will delete all data):
+#    docker-compose -f docker-compose.postgresql.yml down -v

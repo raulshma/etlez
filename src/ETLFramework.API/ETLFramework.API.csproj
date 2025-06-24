@@ -21,6 +21,7 @@
     <ProjectReference Include="../ETLFramework.Connectors/ETLFramework.Connectors.csproj" />
     <ProjectReference Include="../ETLFramework.Transformation/ETLFramework.Transformation.csproj" />
     <ProjectReference Include="../ETLFramework.Pipeline/ETLFramework.Pipeline.csproj" />
+    <ProjectReference Include="..\ETLFramework.Data\ETLFramework.Data.csproj" />
   </ItemGroup>
 
 </Project>
