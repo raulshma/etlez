@@ -3,16 +3,14 @@ using ETLFramework.Configuration.Providers;
 using ETLFramework.Core.Interfaces;
 using ETLFramework.Pipeline;
 using ETLFramework.Connectors;
+using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen(c =>
-{
-    c.SwaggerDoc("v1", new() { Title = "ETL Framework API", Version = "v1" });
-});
+builder.Services.AddOpenApi();
 
 // Add CORS
 builder.Services.AddCors(options =>
@@ -41,11 +39,11 @@ var app = builder.Build();
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
-    app.UseSwagger();
-    app.UseSwaggerUI(c =>
+    app.MapOpenApi();
+    app.MapScalarApiReference(options =>
     {
-        c.SwaggerEndpoint("/swagger/v1/swagger.json", "ETL Framework API v1");
-        c.RoutePrefix = string.Empty; // Serve Swagger UI at root
+        options.Title = "ETL Framework API";
+        options.Theme = ScalarTheme.Solarized;
     });
 }
 
