@@ -13,6 +13,7 @@ COPY src/ETLFramework.Configuration/*.csproj ./src/ETLFramework.Configuration/
 COPY src/ETLFramework.Connectors/*.csproj ./src/ETLFramework.Connectors/
 COPY src/ETLFramework.Transformation/*.csproj ./src/ETLFramework.Transformation/
 COPY src/ETLFramework.Pipeline/*.csproj ./src/ETLFramework.Pipeline/
+COPY src/ETLFramework.Data/*.csproj ./src/ETLFramework.Data/
 COPY src/ETLFramework.API/*.csproj ./src/ETLFramework.API/
 COPY src/ETLFramework.Host/*.csproj ./src/ETLFramework.Host/
 COPY src/ETLFramework.Playground/*.csproj ./src/ETLFramework.Playground/
