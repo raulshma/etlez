@@ -14,6 +14,17 @@ COPY src/ETLFramework.Connectors/*.csproj ./src/ETLFramework.Connectors/
 COPY src/ETLFramework.Transformation/*.csproj ./src/ETLFramework.Transformation/
 COPY src/ETLFramework.Pipeline/*.csproj ./src/ETLFramework.Pipeline/
 COPY src/ETLFramework.API/*.csproj ./src/ETLFramework.API/
+COPY src/ETLFramework.Host/*.csproj ./src/ETLFramework.Host/
+COPY src/ETLFramework.Playground/*.csproj ./src/ETLFramework.Playground/
+
+# Copy test project files
+COPY tests/ETLFramework.Tests.Unit/*.csproj ./tests/ETLFramework.Tests.Unit/
+COPY tests/ETLFramework.Tests.Integration/*.csproj ./tests/ETLFramework.Tests.Integration/
+COPY tests/ETLFramework.Tests.Performance/*.csproj ./tests/ETLFramework.Tests.Performance/
+COPY tests/ETLFramework.Tests/*.csproj ./tests/ETLFramework.Tests/
+
+# Copy sample project files
+COPY samples/ETLFramework.Samples/*.csproj ./samples/ETLFramework.Samples/
 
 # Restore dependencies
 RUN dotnet restore
