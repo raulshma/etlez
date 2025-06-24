@@ -14,7 +14,7 @@ A comprehensive Extract, Transform, Load (ETL) framework built in .NET 9+ with d
 
 ### Supported Data Sources
 - **File Systems**: CSV, JSON, XML with schema detection and batch processing
-- **Databases**: SQL Server, MySQL, PostgreSQL with connection pooling and bulk operations
+- **Databases**: PostgreSQL, SQL Server, MySQL with connection pooling and bulk operations
 - **Cloud Storage**: Azure Blob Storage and AWS S3 with authentication and streaming
 - **Memory**: In-memory connectors for testing and caching
 
@@ -30,7 +30,8 @@ A comprehensive Extract, Transform, Load (ETL) framework built in .NET 9+ with d
 
 - .NET 9.0 SDK or later
 - Visual Studio 2022 or VS Code
-- SQL Server (optional, for database connectors)
+- PostgreSQL (recommended) or other supported databases
+- Docker and Docker Compose (for containerized deployment)
 - Azure/AWS accounts (optional, for cloud storage)
 
 ## 🛠️ Installation
@@ -84,8 +85,8 @@ using ETLFramework.Transformation;
 var pipeline = new PipelineBuilder()
     .WithName("CSV to Database")
     .WithSource("CSV", new { FilePath = "data.csv", HasHeaders = true })
-    .WithTarget("SqlServer", new { ConnectionString = "..." })
-    .AddTransformation("FieldMapping", new { 
+    .WithTarget("PostgreSQL", new { ConnectionString = "Host=localhost;Database=etl;Username=postgres;Password=password;" })
+    .AddTransformation("FieldMapping", new {
         Mappings = new[] {
             new { Source = "Name", Target = "FullName", Transform = "ToUpper" },
             new { Source = "Age", Target = "Age", Transform = "ToInt" }
@@ -113,9 +114,9 @@ curl -X POST https://localhost:5001/api/pipelines \
       }
     },
     "targetConnector": {
-      "type": "Database",
+      "type": "PostgreSQL",
       "configuration": {
-        "connectionString": "Server=localhost;Database=ETL;Trusted_Connection=true;"
+        "connectionString": "Host=localhost;Database=etl;Username=postgres;Password=password;"
       }
     },
     "transformations": [
@@ -191,9 +192,9 @@ When running the API, comprehensive documentation is available at:
     }
   },
   "targetConnector": {
-    "type": "SqlServer",
+    "type": "PostgreSQL",
     "configuration": {
-      "connectionString": "Server=localhost;Database=CRM;Trusted_Connection=true;",
+      "connectionString": "Host=localhost;Database=crm;Username=postgres;Password=password;",
       "tableName": "Customers",
       "batchSize": 1000
     }
@@ -228,8 +229,32 @@ docker build -t etl-framework-api .
 
 ### Run with Docker Compose
 ```bash
+# Start all services (API, PostgreSQL, Redis, Monitoring, etc.)
 docker-compose up -d
+
+# View logs
+docker-compose logs -f
+
+# Stop all services
+docker-compose down
 ```
+
+The Docker Compose setup includes:
+- **ETL Framework API** (port 8080)
+- **PostgreSQL Database** (port 5432)
+- **pgAdmin** (port 8081) - Database management interface
+- **Redis** (port 6379) - Caching and session storage
+- **Prometheus** (port 9090) - Metrics collection
+- **Grafana** (port 3000) - Monitoring dashboards
+- **MinIO** (ports 9000/9001) - S3-compatible object storage
+- **Nginx** (ports 80/443) - Reverse proxy
+
+Access the services:
+- API: http://localhost:8080
+- pgAdmin: http://localhost:8081 (admin@etlframework.com / admin123)
+- Grafana: http://localhost:3000 (admin / admin123)
+- Prometheus: http://localhost:9090
+- MinIO Console: http://localhost:9001 (minioadmin / minioadmin123)
 
 ## 🚀 Deployment
 
