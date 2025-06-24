@@ -1,0 +1,226 @@
+[
+  {
+    "name": "Minimal Pipeline Configuration",
+    "description": "Minimal required fields only",
+    "sourceConnector": {
+      "type": "CSV",
+      "configuration": {
+        "filePath": "minimal.csv"
+      }
+    },
+    "targetConnector": {
+      "type": "JSON",
+      "configuration": {
+        "filePath": "output.json"
+      }
+    },
+    "transformations": [],
+    "isEnabled": true
+  },
+  {
+    "name": "Pipeline with Invalid Source Type",
+    "description": "Test pipeline with unsupported source connector type",
+    "sourceConnector": {
+      "type": "UnsupportedConnector",
+      "configuration": {
+        "someProperty": "someValue"
+      }
+    },
+    "targetConnector": {
+      "type": "JSON",
+      "configuration": {
+        "filePath": "output.json"
+      }
+    },
+    "transformations": [],
+    "isEnabled": true
+  },
+  {
+    "name": "Pipeline with Missing Required Configuration",
+    "description": "Test pipeline with missing required connector configuration",
+    "sourceConnector": {
+      "type": "CSV",
+      "configuration": {}
+    },
+    "targetConnector": {
+      "type": "SqlServer",
+      "configuration": {
+        "connectionString": "Server=localhost;Database=Test;"
+      }
+    },
+    "transformations": [],
+    "isEnabled": true
+  },
+  {
+    "name": "Pipeline with Invalid Transformation Order",
+    "description": "Test pipeline with duplicate transformation orders",
+    "sourceConnector": {
+      "type": "CSV",
+      "configuration": {
+        "filePath": "test.csv",
+        "hasHeaders": true
+      }
+    },
+    "targetConnector": {
+      "type": "JSON",
+      "configuration": {
+        "filePath": "output.json"
+      }
+    },
+    "transformations": [
+      {
+        "name": "First Transform",
+        "type": "StringTransformation",
+        "configuration": {
+          "fieldName": "Name",
+          "operation": "ToUpper"
+        },
+        "order": 1
+      },
+      {
+        "name": "Second Transform",
+        "type": "StringTransformation",
+        "configuration": {
+          "fieldName": "Email",
+          "operation": "ToLower"
+        },
+        "order": 1
+      }
+    ],
+    "isEnabled": true
+  },
+  {
+    "name": "Pipeline with Very Long Name",
+    "description": "Test pipeline name validation with a very long name that exceeds the maximum allowed length of 100 characters which should cause validation to fail",
+    "sourceConnector": {
+      "type": "CSV",
+      "configuration": {
+        "filePath": "test.csv"
+      }
+    },
+    "targetConnector": {
+      "type": "JSON",
+      "configuration": {
+        "filePath": "output.json"
+      }
+    },
+    "transformations": [],
+    "isEnabled": true
+  },
+  {
+    "name": "Pipeline with Empty Transformation Configuration",
+    "description": "Test pipeline with transformation that has empty configuration",
+    "sourceConnector": {
+      "type": "CSV",
+      "configuration": {
+        "filePath": "test.csv",
+        "hasHeaders": true
+      }
+    },
+    "targetConnector": {
+      "type": "JSON",
+      "configuration": {
+        "filePath": "output.json"
+      }
+    },
+    "transformations": [
+      {
+        "name": "Empty Config Transform",
+        "type": "StringTransformation",
+        "configuration": {},
+        "order": 1
+      }
+    ],
+    "isEnabled": true
+  },
+  {
+    "name": "Pipeline with Special Characters",
+    "description": "Test pipeline with special characters in names and configurations: àáâãäåæçèéêë",
+    "sourceConnector": {
+      "type": "CSV",
+      "configuration": {
+        "filePath": "données_spéciales.csv",
+        "hasHeaders": true,
+        "delimiter": ";",
+        "encoding": "UTF-8"
+      }
+    },
+    "targetConnector": {
+      "type": "JSON",
+      "configuration": {
+        "filePath": "sortie_spéciale.json",
+        "encoding": "UTF-8"
+      }
+    },
+    "transformations": [
+      {
+        "name": "Transformation Spéciale",
+        "type": "StringTransformation",
+        "configuration": {
+          "fieldName": "Nom_Prénom",
+          "operation": "ToUpper"
+        },
+        "order": 1
+      }
+    ],
+    "configuration": {
+      "description": "Pipeline avec caractères spéciaux: éàèùç"
+    },
+    "isEnabled": true
+  },
+  {
+    "name": "Disabled Pipeline Test",
+    "description": "Test pipeline that is disabled by default",
+    "sourceConnector": {
+      "type": "CSV",
+      "configuration": {
+        "filePath": "test.csv",
+        "hasHeaders": true
+      }
+    },
+    "targetConnector": {
+      "type": "JSON",
+      "configuration": {
+        "filePath": "output.json"
+      }
+    },
+    "transformations": [
+      {
+        "name": "Simple Transform",
+        "type": "StringTransformation",
+        "configuration": {
+          "fieldName": "Name",
+          "operation": "Trim"
+        },
+        "order": 1
+      }
+    ],
+    "isEnabled": false
+  },
+  {
+    "name": "Pipeline with Null Values in Configuration",
+    "description": "Test pipeline handling of null values in configuration",
+    "sourceConnector": {
+      "type": "CSV",
+      "configuration": {
+        "filePath": "test.csv",
+        "hasHeaders": true,
+        "delimiter": null,
+        "encoding": null
+      }
+    },
+    "targetConnector": {
+      "type": "JSON",
+      "configuration": {
+        "filePath": "output.json",
+        "format": null
+      }
+    },
+    "transformations": [],
+    "configuration": {
+      "batchSize": null,
+      "timeout": null
+    },
+    "isEnabled": true
+  }
+]

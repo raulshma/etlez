@@ -1,0 +1,215 @@
+[
+  {
+    "name": "Multi-Source Data Aggregation Pipeline",
+    "description": "Aggregate data from multiple CSV files with complex transformations and validation",
+    "sourceConnector": {
+      "type": "CSV",
+      "configuration": {
+        "filePath": "sales_*.csv",
+        "hasHeaders": true,
+        "delimiter": ",",
+        "encoding": "UTF-8",
+        "multiFile": true,
+        "skipEmptyLines": true
+      }
+    },
+    "targetConnector": {
+      "type": "SqlServer",
+      "configuration": {
+        "connectionString": "Server=localhost;Database=Analytics;Trusted_Connection=true;",
+        "tableName": "SalesAggregated",
+        "batchSize": 1000,
+        "truncateBeforeLoad": true,
+        "createTableIfNotExists": true
+      }
+    },
+    "transformations": [
+      {
+        "name": "Validate Sales Data",
+        "type": "DataValidation",
+        "configuration": {
+          "rules": [
+            {
+              "fieldName": "SaleAmount",
+              "required": true,
+              "type": "decimal",
+              "minValue": 0,
+              "maxValue": 1000000
+            },
+            {
+              "fieldName": "SaleDate",
+              "required": true,
+              "type": "datetime",
+              "format": "yyyy-MM-dd"
+            },
+            {
+              "fieldName": "Region",
+              "required": true,
+              "allowedValues": ["North", "South", "East", "West", "Central"]
+            },
+            {
+              "fieldName": "CustomerEmail",
+              "required": false,
+              "pattern": "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$"
+            }
+          ]
+        },
+        "order": 1
+      },
+      {
+        "name": "Standardize Region Names",
+        "type": "LookupTransformation",
+        "configuration": {
+          "fieldName": "Region",
+          "lookupTable": {
+            "N": "North",
+            "S": "South",
+            "E": "East",
+            "W": "West",
+            "C": "Central",
+            "NORTH": "North",
+            "SOUTH": "South",
+            "EAST": "East",
+            "WEST": "West",
+            "CENTER": "Central"
+          },
+          "defaultValue": "Unknown",
+          "caseSensitive": false
+        },
+        "order": 2
+      },
+      {
+        "name": "Extract Date Components",
+        "type": "DateTimeTransformation",
+        "configuration": {
+          "operations": [
+            {
+              "fieldName": "SaleDate",
+              "targetField": "Year",
+              "operation": "ExtractYear"
+            },
+            {
+              "fieldName": "SaleDate",
+              "targetField": "Quarter",
+              "operation": "ExtractQuarter"
+            },
+            {
+              "fieldName": "SaleDate",
+              "targetField": "Month",
+              "operation": "ExtractMonth"
+            },
+            {
+              "fieldName": "SaleDate",
+              "targetField": "DayOfWeek",
+              "operation": "ExtractDayOfWeek"
+            }
+          ]
+        },
+        "order": 3
+      },
+      {
+        "name": "Calculate Business Metrics",
+        "type": "CalculatedFieldTransformation",
+        "configuration": {
+          "calculations": [
+            {
+              "targetField": "SaleAmountUSD",
+              "expression": "SaleAmount * ExchangeRate",
+              "dataType": "decimal"
+            },
+            {
+              "targetField": "IsHighValue",
+              "expression": "SaleAmount > 10000",
+              "dataType": "boolean"
+            },
+            {
+              "targetField": "SaleTier",
+              "expression": "CASE WHEN SaleAmount < 1000 THEN 'Low' WHEN SaleAmount < 5000 THEN 'Medium' ELSE 'High' END",
+              "dataType": "string"
+            }
+          ]
+        },
+        "order": 4
+      },
+      {
+        "name": "Group and Aggregate Sales",
+        "type": "AggregationTransformation",
+        "configuration": {
+          "groupByFields": ["Region", "Year", "Quarter", "SaleTier"],
+          "aggregations": [
+            {
+              "sourceField": "SaleAmount",
+              "targetField": "TotalSales",
+              "operation": "Sum"
+            },
+            {
+              "sourceField": "SaleAmount",
+              "targetField": "AverageSale",
+              "operation": "Average"
+            },
+            {
+              "sourceField": "SaleAmount",
+              "targetField": "MaxSale",
+              "operation": "Max"
+            },
+            {
+              "sourceField": "SaleAmount",
+              "targetField": "MinSale",
+              "operation": "Min"
+            },
+            {
+              "sourceField": "SaleId",
+              "targetField": "SaleCount",
+              "operation": "Count"
+            },
+            {
+              "sourceField": "IsHighValue",
+              "targetField": "HighValueCount",
+              "operation": "CountTrue"
+            }
+          ]
+        },
+        "order": 5
+      },
+      {
+        "name": "Add Processing Metadata",
+        "type": "FieldMapping",
+        "configuration": {
+          "mappings": [
+            {
+              "targetField": "ProcessedDateTime",
+              "operation": "CurrentDateTime",
+              "format": "yyyy-MM-dd HH:mm:ss"
+            },
+            {
+              "targetField": "ProcessedBy",
+              "operation": "Constant",
+              "value": "ETL_AGGREGATION_PIPELINE"
+            },
+            {
+              "targetField": "DataVersion",
+              "operation": "Constant",
+              "value": "2.1"
+            },
+            {
+              "targetField": "RecordHash",
+              "operation": "GenerateHash",
+              "fields": ["Region", "Year", "Quarter", "SaleTier"]
+            }
+          ]
+        },
+        "order": 6
+      }
+    ],
+    "configuration": {
+      "batchSize": 500,
+      "parallelProcessing": true,
+      "errorHandling": "LogAndContinue",
+      "maxErrors": 100,
+      "logLevel": "Info",
+      "enableProfiling": true,
+      "timeout": 1800
+    },
+    "isEnabled": true
+  }
+]

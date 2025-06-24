@@ -1,0 +1,280 @@
+[
+  {
+    "name": "Basic CSV to Database Pipeline",
+    "description": "Simple pipeline to transfer customer data from CSV to SQL Server",
+    "sourceConnector": {
+      "type": "CSV",
+      "configuration": {
+        "filePath": "customers.csv",
+        "hasHeaders": true,
+        "delimiter": ",",
+        "encoding": "UTF-8"
+      }
+    },
+    "targetConnector": {
+      "type": "SqlServer",
+      "configuration": {
+        "connectionString": "Server=localhost;Database=CRM;Trusted_Connection=true;",
+        "tableName": "Customers",
+        "batchSize": 1000
+      }
+    },
+    "transformations": [
+      {
+        "name": "Validate Email",
+        "type": "DataValidation",
+        "configuration": {
+          "fieldName": "Email",
+          "pattern": "^[\\w-\\.]+@([\\w-]+\\.)+[\\w-]{2,4}$"
+        },
+        "order": 1
+      },
+      {
+        "name": "Format Phone",
+        "type": "StringTransformation",
+        "configuration": {
+          "fieldName": "Phone",
+          "operation": "FormatPhone"
+        },
+        "order": 2
+      }
+    ],
+    "configuration": {
+      "batchSize": 500,
+      "parallelProcessing": true,
+      "errorHandling": "Continue"
+    },
+    "isEnabled": true
+  },
+  {
+    "name": "JSON to XML Data Migration",
+    "description": "Convert JSON product catalog to XML format with data enrichment",
+    "sourceConnector": {
+      "type": "JSON",
+      "configuration": {
+        "filePath": "products.json",
+        "format": "Array",
+        "encoding": "UTF-8"
+      }
+    },
+    "targetConnector": {
+      "type": "XML",
+      "configuration": {
+        "filePath": "products_output.xml",
+        "rootElement": "ProductCatalog",
+        "recordElement": "Product"
+      }
+    },
+    "transformations": [
+      {
+        "name": "Uppercase Product Name",
+        "type": "StringTransformation",
+        "configuration": {
+          "fieldName": "ProductName",
+          "operation": "ToUpper"
+        },
+        "order": 1
+      },
+      {
+        "name": "Round Price",
+        "type": "NumericTransformation",
+        "configuration": {
+          "fieldName": "Price",
+          "operation": "Round",
+          "precision": 2
+        },
+        "order": 2
+      },
+      {
+        "name": "Add Category Prefix",
+        "type": "StringTransformation",
+        "configuration": {
+          "fieldName": "Category",
+          "operation": "Prefix",
+          "value": "CAT_"
+        },
+        "order": 3
+      }
+    ],
+    "configuration": {
+      "validateSchema": true,
+      "preserveOrder": true
+    },
+    "isEnabled": true
+  },
+  {
+    "name": "Complex Employee Data Processing",
+    "description": "Multi-stage transformation pipeline for employee data with validation and enrichment",
+    "sourceConnector": {
+      "type": "CSV",
+      "configuration": {
+        "filePath": "employees.csv",
+        "hasHeaders": true,
+        "delimiter": ";",
+        "encoding": "UTF-8"
+      }
+    },
+    "targetConnector": {
+      "type": "SqlServer",
+      "configuration": {
+        "connectionString": "Server=localhost;Database=HR;Integrated Security=true;",
+        "tableName": "ProcessedEmployees",
+        "batchSize": 100,
+        "createTableIfNotExists": true
+      }
+    },
+    "transformations": [
+      {
+        "name": "Validate Required Fields",
+        "type": "DataValidation",
+        "configuration": {
+          "rules": [
+            {
+              "fieldName": "EmployeeId",
+              "required": true,
+              "type": "string"
+            },
+            {
+              "fieldName": "Email",
+              "required": true,
+              "pattern": "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$"
+            }
+          ]
+        },
+        "order": 1
+      },
+      {
+        "name": "Normalize Names",
+        "type": "StringTransformation",
+        "configuration": {
+          "operations": [
+            {
+              "fieldName": "FirstName",
+              "operation": "Trim"
+            },
+            {
+              "fieldName": "LastName",
+              "operation": "Trim"
+            },
+            {
+              "fieldName": "FirstName",
+              "operation": "ProperCase"
+            },
+            {
+              "fieldName": "LastName",
+              "operation": "ProperCase"
+            }
+          ]
+        },
+        "order": 2
+      },
+      {
+        "name": "Calculate Full Name",
+        "type": "FieldMapping",
+        "configuration": {
+          "mappings": [
+            {
+              "sourceFields": ["FirstName", "LastName"],
+              "targetField": "FullName",
+              "operation": "Concatenate",
+              "separator": " "
+            }
+          ]
+        },
+        "order": 3
+      },
+      {
+        "name": "Process Salary",
+        "type": "NumericTransformation",
+        "configuration": {
+          "fieldName": "Salary",
+          "operation": "Round",
+          "precision": 0
+        },
+        "order": 4
+      },
+      {
+        "name": "Add Processing Metadata",
+        "type": "FieldMapping",
+        "configuration": {
+          "mappings": [
+            {
+              "targetField": "ProcessedDate",
+              "operation": "CurrentDateTime"
+            },
+            {
+              "targetField": "ProcessedBy",
+              "operation": "Constant",
+              "value": "ETL_SYSTEM"
+            }
+          ]
+        },
+        "order": 5
+      }
+    ],
+    "configuration": {
+      "batchSize": 50,
+      "parallelProcessing": false,
+      "errorHandling": "StopOnError",
+      "logLevel": "Debug"
+    },
+    "isEnabled": true
+  },
+  {
+    "name": "SQLite to JSON Export Pipeline",
+    "description": "Export data from SQLite database to JSON with custom transformations",
+    "sourceConnector": {
+      "type": "SQLite",
+      "configuration": {
+        "connectionString": "Data Source=orders.db;",
+        "query": "SELECT * FROM Orders WHERE OrderDate >= date('now', '-30 days')",
+        "timeout": 30
+      }
+    },
+    "targetConnector": {
+      "type": "JSON",
+      "configuration": {
+        "filePath": "recent_orders.json",
+        "format": "Array",
+        "prettyPrint": true
+      }
+    },
+    "transformations": [
+      {
+        "name": "Format Order Date",
+        "type": "DateTimeTransformation",
+        "configuration": {
+          "fieldName": "OrderDate",
+          "operation": "Format",
+          "format": "yyyy-MM-dd HH:mm:ss"
+        },
+        "order": 1
+      },
+      {
+        "name": "Calculate Order Age",
+        "type": "DateTimeTransformation",
+        "configuration": {
+          "fieldName": "OrderDate",
+          "targetField": "OrderAgeDays",
+          "operation": "DaysFromNow"
+        },
+        "order": 2
+      },
+      {
+        "name": "Format Currency",
+        "type": "NumericTransformation",
+        "configuration": {
+          "fieldName": "TotalAmount",
+          "operation": "FormatCurrency",
+          "culture": "en-US"
+        },
+        "order": 3
+      }
+    ],
+    "configuration": {
+      "timeout": 300,
+      "retryCount": 3
+    },
+    "isEnabled": true
+  }
+]
